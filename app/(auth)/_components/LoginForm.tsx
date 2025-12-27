@@ -3,8 +3,10 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, LoginType } from "../schema";
+import { useRouter } from "next/navigation";
 
 export default function LoginForm() {
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -15,6 +17,7 @@ export default function LoginForm() {
 
   const onSubmit = async (data: LoginType) => {
     console.log("Login Data:", data);
+    router.push("/dashboard");
   };
 
   return (

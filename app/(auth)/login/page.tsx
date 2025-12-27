@@ -15,7 +15,7 @@ export default function LoginPage() {
         <h1 className="text-2xl font-semibold text-center text-[#111827]">
           Welcome Back
         </h1>
-
+       
         <p className="text-sm text-center text-[#6b7280] mt-1 mb-6">
           Login to continue your fanup journey
         </p>
