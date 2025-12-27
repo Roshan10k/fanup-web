@@ -1,3 +1,4 @@
+import Link from "next/link";
 export default function HeroSection() {
   return (
    <section className="bg-[#F6F0F0] py-32 min-h-[600px] flex items-center">
@@ -12,12 +13,16 @@ export default function HeroSection() {
           Create teams, compete in contests, and win real prizes!
         </p>
         <div className="flex justify-center space-x-4">
+          <Link href="/signup">
           <button className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 px-8 py-3 rounded-full font-semibold text-lg transition">
             Start Playing Free
           </button>
+          </Link>
+          <Link href="/login">
           <button className="bg-white hover:bg-gray-50 text-gray-900 px-8 py-3 rounded-full font-semibold text-lg border-2 border-gray-300 transition">
             Login
           </button>
+          </Link>
         </div>
       </div>
     </section>

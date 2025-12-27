@@ -1,3 +1,4 @@
+import Link from "next/link";
 export default function HowItWorks() {
   return  <section className="py-20 bg-[#F6F0F0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -40,10 +41,13 @@ export default function HowItWorks() {
             </div>
           </div>
 
+          
           <div className="text-center mt-12">
+            <Link href="/signup">
             <button className="bg-red-500 hover:bg-red-600 text-white px-10 py-4 rounded-full font-semibold text-lg transition">
               Start Your Journey
             </button>
+            </Link>
           </div>
         </div>
       </section>
