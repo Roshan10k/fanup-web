@@ -94,9 +94,9 @@ export default function SignupForm() {
       {/* Button */}
       <button
         disabled={isSubmitting}
-        className="w-full bg-[#ef4f3f] hover:bg-[#e64535] text-white py-3 rounded-xl font-medium transition"
+        className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-medium transition"
       >
-        {isSubmitting ? "Creating Account..." : "Login"}
+        {isSubmitting ? "Creating Account..." : "Sign Up"}
       </button>
     </form>
   );

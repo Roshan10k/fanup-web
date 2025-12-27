@@ -85,8 +85,8 @@ export default function LoginForm() {
         disabled={isSubmitting}
         className="
           w-full
-          bg-[#ef4f3f]
-          hover:bg-[#e64535]
+          bg-red-500
+          hover:bg-red-600
           text-white
           py-3
           rounded-xl
