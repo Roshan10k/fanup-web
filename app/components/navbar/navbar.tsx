@@ -4,11 +4,17 @@ import Image from "next/image";
 export default function Navbar() {
   return (
     <header className="w-full bg-white border-b">
-      
-      <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-        {/* Logo */}
+      {/* (controls distance from edges) */}
+      <div className="flex items-center justify-between px-12 py-4">
+
+        {/* LEFT: Logo + Brand */}
         <div className="flex items-center gap-2">
-            <Image src="/images/logo.png" alt="logo" width={60} height={60}/>
+          <Image
+            src="/images/logo.png"
+            alt="FanUp Logo"
+            width={60}
+            height={60}
+          />
 
           <span className="text-lg font-semibold">
             <span className="text-black">Fan</span>
@@ -16,7 +22,8 @@ export default function Navbar() {
           </span>
         </div>
 
-        <div className="flex items-center gap-8">
+        {/* RIGHT: Auth actions */}
+        <div className="flex items-center gap-6">
           <Link
             href="/login"
             className="text-sm font-medium text-gray-800 hover:text-black transition"
@@ -30,7 +37,7 @@ export default function Navbar() {
               bg-[#ef4f3f]
               hover:bg-[#e64535]
               text-white
-              px-6 py-2
+              px-5 py-2
               rounded-full
               text-sm
               font-medium
