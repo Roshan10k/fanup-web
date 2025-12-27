@@ -1,6 +1,6 @@
 export default function HeroSection() {
   return (
-   <section className="bg-gradient-to-br from-gray-50 to-gray-100 py-32 min-h-[600px] flex items-center">
+   <section className="bg-[#F6F0F0] py-32 min-h-[600px] flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full">
         <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-4">
           Build Your Dream
