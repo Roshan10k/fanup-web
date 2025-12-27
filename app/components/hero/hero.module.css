@@ -2,6 +2,7 @@
   background-color: #f7f1ee;
   padding: 100px 20px 80px;
   text-align: center;
+  height: 700px;
 }
 
 .title {
@@ -10,6 +11,7 @@
   font-weight: 700;
   color: #000;
   margin-bottom: 16px;
+  
 }
 
 .highlight {

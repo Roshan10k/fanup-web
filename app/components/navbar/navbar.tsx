@@ -3,10 +3,12 @@ import Image from "next/image";
 
 export default function Navbar() {
   return (
-    <header className="w-full bg-white border-b">
+    <header
+      className="w-full bg-[#F5F5F5]" border-b 
+      
+    >
       {/* (controls distance from edges) */}
       <div className="flex items-center justify-between px-12 py-4">
-
         {/* LEFT: Logo + Brand */}
         <div className="flex items-center gap-2">
           <Image
