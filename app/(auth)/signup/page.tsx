@@ -1,35 +1,57 @@
-import SignupForm from "../_components/SignupForm";
+// page.tsx
+
 import Image from "next/image";
+import Link from "next/link";
+import SignupForm from "../_components/SignupForm";
 
 export default function SignupPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-full max-w-md bg-white rounded-2xl p-8 shadow">
+    <div className="min-h-screen flex items-center justify-center p-4 md:p-0">
+      <div className="w-full max-w-6xl grid md:grid-cols-2 gap-0 overflow-hidden rounded-2xl shadow-2xl bg-white/5 backdrop-blur-sm border border-white/10">
+       
+        <div className="relative hidden md:block overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent z-10" />
+          
+   
+          <Image
+            src="/images/signup.jpg"
+            alt="Fantasy Cricket Action"
+            fill
+            className="object-cover brightness-75"
+            priority
+          />
 
-        {/* Logo */}
-        <div className="flex justify-center mb-4">
-            <Image src="/images/logo.png" alt="logo" width={100} height={100}/>
+          {/* Overlay content */}
+          <div className="relative z-20 h-full flex flex-col justify-end p-10 text-white">
+            <h2 className="text-4xl md:text-5xl font-black mb-4 tracking-tight">
+              Build Your Dream Team
+            </h2>
+            <p className="text-xl md:text-2xl font-semibold mb-6 text-red-400">
+              Win with FanUp Today!
+            </p>
+
+            
+            
+          </div>
         </div>
 
-        {/* Heading */}
-        <h1 className="text-2xl font-semibold text-center text-[#111827]">
-          Create Your Account
-        </h1>
+        {/* RIGHT SIDE - Form */}
+        <div className="p-8 md:p-12 bg-white/95 backdrop-blur-md">
+         
+          <div className="md:hidden text-center mb-8">
+            <h1 className="text-3xl font-black text-red-600">FanUp</h1>
+            <p className="text-lg font-semibold mt-2">Fantasy Cricket Thrills</p>
+          </div>
 
-        <p className="text-sm text-center text-[#6b7280] mt-1 mb-6">
-          Join the ultimate fantasy cricket experience
-        </p>
+          <SignupForm />
 
-        <SignupForm />
-
-        {/* Footer */}
-        <p className="text-center text-sm mt-5 text-[#6b7280]">
-          Already have an account?{" "}
-          <a href="/login" className="text-[#2563eb] font-medium">
-            Login
-          </a>
-        </p>
-
+          <p className="text-center text-sm mt-8 text-gray-600">
+            Already have an account?{" "}
+            <Link href="/login" className="text-red-600 hover:text-red-700 font-semibold">
+              Login
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

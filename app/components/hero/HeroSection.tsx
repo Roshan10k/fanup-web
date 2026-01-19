@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function HeroSection() {
   return (
-    <section
+    <section id="about"
       className="relative flex items-center bg-cover bg-center min-h-[700px] py-28" 
       style={{
         backgroundImage: "url('/images/cricket-bg.png')",
