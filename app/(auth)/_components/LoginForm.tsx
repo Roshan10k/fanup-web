@@ -7,9 +7,11 @@ import { loginSchema, LoginType } from "../schema";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { handleLogin } from "@/app/lib/action/auth_action"
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
 
   const {
@@ -21,13 +23,25 @@ export default function LoginForm() {
   });
 
   const onSubmit = async (data: LoginType) => {
-    console.log("Login Data:", data);
+    try {
+      setErrorMessage(null); // Clear previous errors
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Call your server action
+      const result = await handleLogin(data);
 
-    // Redirect to dashboard
-    router.push("/dashboard");
+      if (result.success) {
+        // Success Redirect to dashboard
+        router.push("/dashboard");
+        router.refresh(); // Refresh to update server components with new auth state
+      } else {
+        // Show error message from server
+        setErrorMessage(result.message || "Login failed. Please try again.");
+      }
+    } catch (error: any) {
+      // Handle unexpected errors
+      setErrorMessage(error.message || "An unexpected error occurred");
+      console.error("Login error:", error);
+    }
   };
 
   return (
@@ -39,6 +53,13 @@ export default function LoginForm() {
           Login to continue your FanUp journey
         </p>
       </div>
+
+      {/* Error Alert */}
+      {errorMessage && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          {errorMessage}
+        </div>
+      )}
 
       {/* Email */}
       <div>
@@ -127,8 +148,7 @@ export default function LoginForm() {
         </div>
       </div>
 
- 
-     {/* Social Buttons - */}
+      {/* Social Buttons */}
       <div className="space-y-4">
         {/* Google*/}
         <button
@@ -136,7 +156,6 @@ export default function LoginForm() {
           className="w-full flex items-center justify-center gap-3 px-6 py-3.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition font-medium shadow-sm"
         >
           <svg className="w-6 h-6" viewBox="0 0 24 24">
-            {/* Google official G icon paths - you can copy from google.com */}
             <path
               fill="#4285F4"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.51h5.84c-.25 1.31-.98 2.42-2.07 3.16v2.63h3.35c1.96-1.81 3.09-4.47 3.09-7.25z"
