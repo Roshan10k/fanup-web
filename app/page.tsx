@@ -8,6 +8,7 @@ import WhyChooseUs from "./components/why-chose-us/WhyChoseUs";
 export default function HomePage() {
   return (
     <>
+      <Navbar />
       <HeroSection />
       <WhyChooseUs />
       <HowItWorks />

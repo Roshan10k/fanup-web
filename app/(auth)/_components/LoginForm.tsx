@@ -7,7 +7,7 @@ import { loginSchema, LoginType } from "../schema";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { handleLogin } from "@/app/lib/action/auth_action"
+import { handleLogin } from "@/app/lib/action/auth_action";
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -30,9 +30,12 @@ export default function LoginForm() {
       const result = await handleLogin(data);
 
       if (result.success) {
-        // Success Redirect to dashboard
-        router.push("/dashboard");
-        router.refresh(); // Refresh to update server components with new auth state
+        if (result.data?.role === "admin") {
+          router.replace("/admin");
+        } else {
+          router.replace("/user");
+        }
+        router.refresh();
       } else {
         // Show error message from server
         setErrorMessage(result.message || "Login failed. Please try again.");
@@ -75,9 +78,7 @@ export default function LoginForm() {
           } px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400`}
         />
         {errors.email && (
-          <p className="text-xs text-red-500 mt-1">
-            {errors.email.message}
-          </p>
+          <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
         )}
       </div>
 
@@ -114,9 +115,7 @@ export default function LoginForm() {
         </div>
 
         {errors.password && (
-          <p className="text-xs text-red-500 mt-1">
-            {errors.password.message}
-          </p>
+          <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
         )}
       </div>
 
