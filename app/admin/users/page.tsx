@@ -2,14 +2,34 @@ import Link from "next/link";
 import { handleGetAllUsers, handleGetUserStats } from "@/app/lib/action/admin/user-action";
 import UserTable from "./_components/UserTable";
 
-export default async function Page() {
+export default async function Page({
+    searchParams
+}: {
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+    const params = await searchParams;
+    const page = params.page as string || '1';
+    const size = params.size as string || '10';
+    const search = params.search as string || '';
+
     const [usersResult, statsResult] = await Promise.all([
-        handleGetAllUsers(),
+        handleGetAllUsers(page, size, search),
         handleGetUserStats(),
     ]);
 
-    const users = usersResult.success ? usersResult.data || [] : [];
+    if (!usersResult.success) {
+        throw new Error(usersResult.message || 'Failed to load users');
+    }
+
     const stats = statsResult.success ? statsResult.data : null;
+
+    // Ensure pagination is always defined
+    const pagination = usersResult.pagination || {
+        page: parseInt(page),
+        size: parseInt(size),
+        totalItems: 0,
+        totalPages: 0
+    };
 
     return (
         <div className="space-y-6">
@@ -60,7 +80,11 @@ export default async function Page() {
             )}
 
             {/* Users Table */}
-            <UserTable initialUsers={users} />
+            <UserTable 
+                users={usersResult.data || []} 
+                pagination={pagination} 
+                search={search} 
+            />
         </div>
     );
 }

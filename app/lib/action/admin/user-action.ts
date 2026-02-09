@@ -4,11 +4,23 @@ import { getAuthToken } from "@/app/lib/cookie";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
-export async function handleGetAllUsers() {
+export async function handleGetAllUsers(page: string = '1', size: string = '10', search?: string) {
     try {
         const token = await getAuthToken();
         
-        const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
+        const currentPage = parseInt(page) || 1;
+        const currentSize = parseInt(size) || 10;
+        
+        const params = new URLSearchParams({
+            page: currentPage.toString(),
+            size: currentSize.toString(),
+        });
+        
+        if (search) {
+            params.append('search', search);
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/api/admin/users?${params.toString()}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -25,10 +37,17 @@ export async function handleGetAllUsers() {
         }
 
         const data = await response.json();
+        
+        
         return {
             success: true,
             data: data.data,
-            count: data.count,
+            pagination: data.pagination || {
+                page: currentPage,
+                size: currentSize,
+                totalItems: 0,
+                totalPages: 0
+            }
         };
     } catch (error) {
         return {
@@ -37,7 +56,6 @@ export async function handleGetAllUsers() {
         };
     }
 }
-
 export async function handleGetUserById(id: string) {
     try {
         const token = await getAuthToken();
@@ -113,7 +131,7 @@ export async function handleCreateUser(formData: FormData) {
             headers: {
                 'Authorization': `Bearer ${token}`,
             },
-            body: formData, // FormData sent directly
+            body: formData,
         });
 
         if (!response.ok) {
