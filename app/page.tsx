@@ -1,9 +1,9 @@
-import ContactSection from "./components/contact/ContactSection";
-import Footer from "./components/footer/Footer";
-import HeroSection from "./components/hero/HeroSection";
-import HowItWorks from "./components/how-it-works/HowItWorks";
-import Navbar from "./components/navbar/navbar";
-import WhyChooseUs from "./components/why-chose-us/WhyChoseUs";
+import ContactSection from "./_components/ContactSection";
+import Footer from "./_components/Footer";
+import HeroSection from "./_components/HeroSection";
+import HowItWorks from "./_components/HowItWorks";
+import Navbar from "./_components/navbar";
+import WhyChooseUs from "./_components/WhyChoseUs";
 
 export default function HomePage() {
   return (

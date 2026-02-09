@@ -1,6 +1,6 @@
 import "./globals.css";
 import { Poppins } from "next/font/google";
-import Navbar from "./components/navbar/navbar";
+import Navbar from "./_components/navbar";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from "@/context/AuthContext";
@@ -15,7 +15,7 @@ const poppins = Poppins({
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <body className={poppins.className}>
         <AuthProvider>
         {children}
         </AuthProvider>
