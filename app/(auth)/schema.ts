@@ -26,3 +26,10 @@ export const signupSchema = z
   });
 
 export type SignupType = z.infer<typeof signupSchema>;
+
+// Forgot password schema
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
+});
+
+export type ForgotPasswordType = z.infer<typeof forgotPasswordSchema>;
