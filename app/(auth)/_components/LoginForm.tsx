@@ -33,7 +33,7 @@ export default function LoginForm() {
         if (result.data?.role === "admin") {
           router.replace("/admin");
         } else {
-          router.replace("/user");
+          router.replace("/dashboard");
         }
         router.refresh();
       } else {
@@ -89,7 +89,7 @@ export default function LoginForm() {
             Password <span className="text-red-500">*</span>
           </label>
           <Link
-            href="/forgot-password"
+            href="/request-reset-password"
             className="text-sm text-red-600 hover:text-red-700"
           >
             Forgot Password?

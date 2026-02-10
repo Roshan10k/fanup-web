@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signupSchema, SignupType } from "../schema";
@@ -14,6 +14,7 @@ export default function SignupForm() {
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   const {
@@ -29,40 +30,36 @@ export default function SignupForm() {
   const confirmPassword = watch("confirmPassword", "");
 
   const onSubmit = async (data: SignupType) => {
-    try {
-      // Check terms agreement
-      if (!agreeToTerms) {
-        setErrorMessage(
-          "Please accept the Terms of Service and Privacy Policy",
-        );
-        return;
-      }
-
-      setErrorMessage(null);
-      setSuccessMessage(null);
-
-      // Call your server action
-      const result = await handleRegister(data);
-
-      if (result.success) {
-        // Success! Show message and redirect to login
-        setSuccessMessage(result.message || "Account created successfully!");
-
-        // Redirect to login after 2 seconds
-        setTimeout(() => {
-          router.push("/login");
-        }, 2000);
-      } else {
-        // Show error message from server
-        setErrorMessage(
-          result.message || "Registration failed. Please try again.",
-        );
-      }
-    } catch (error: any) {
-      // Handle unexpected errors
-      setErrorMessage(error.message || "An unexpected error occurred");
-      console.error("Signup error:", error);
+    // Check terms agreement
+    if (!agreeToTerms) {
+      setErrorMessage("Please accept the Terms of Service and Privacy Policy");
+      return;
     }
+
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    startTransition(async () => {
+      try {
+        const result = await handleRegister(data);
+
+        if (result.success) {
+          setSuccessMessage(result.message || "Account created successfully!");
+
+          // Redirect to login after 2 seconds
+          setTimeout(() => {
+            router.push("/login");
+          }, 2000);
+        } else {
+          setErrorMessage(
+            result.message || "Registration failed. Please try again.",
+          );
+        }
+      } catch (error: any) {
+        setErrorMessage(error.message || "An unexpected error occurred");
+        console.error("Signup error:", error);
+      }
+    });
   };
 
   const passwordRequirements = [
@@ -77,6 +74,9 @@ export default function SignupForm() {
       met: /[^a-zA-Z0-9]/.test(password),
     },
   ];
+
+  // Combine both loading states
+  const isLoading = isSubmitting || isPending;
 
   return (
     <div className="space-y-6">
@@ -243,14 +243,14 @@ export default function SignupForm() {
         </label>
       </div>
 
-      {/* Submit */}
+      {/* Submit Button */}
       <button
         type="button"
         onClick={handleSubmit(onSubmit)}
-        disabled={isSubmitting}
+        disabled={isLoading}
         className="w-full bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white py-3.5 rounded-xl font-medium transition flex items-center justify-center gap-2 shadow-md"
       >
-        {isSubmitting ? (
+        {isLoading ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
             Creating Account...
