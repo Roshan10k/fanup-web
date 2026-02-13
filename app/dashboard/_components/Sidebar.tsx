@@ -3,26 +3,31 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Bell, Home, Trophy, Wallet, User, Settings, LogOut, BarChart3 } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Bell, Home, Wallet, User, Settings, LogOut, BarChart3 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
-interface SidebarProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-}
-
-export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
+export default function Sidebar() {
   const { logout } = useAuth();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const pathname = usePathname();
 
   const NAV_LINKS = [
     { icon: Home, label: "Home", href: "/dashboard" },
-    { icon: Wallet, label: "Wallet", href: "/wallet" },
-    { icon: BarChart3, label: "Leaderboard", href: "/leaderboard" },
+    { icon: Wallet, label: "Wallet", href: "/dashboard/wallet" },
+    { icon: BarChart3, label: "Leaderboard", href: "/dashboard/leaderboard" },
     { icon: User, label: "Profile", href: "/profile" },
     { icon: Bell, label: "Notification", href: "/notifications", badge: true },
     { icon: Settings, label: "Settings", href: "/settings" },
   ];
+
+  const isLinkActive = (href: string) => {
+    if (href === "/dashboard") {
+      return pathname === "/dashboard";
+    }
+
+    return pathname.startsWith(href);
+  };
 
   return (
     <aside className="w-72 bg-white border-r border-gray-200 min-h-screen p-6 flex flex-col">
@@ -47,7 +52,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 space-y-2">
         {NAV_LINKS.map((item) => {
-          const isActive = activeTab === item.label.toLowerCase();
+          const isActive = isLinkActive(item.href);
           return (
             <Link
               key={item.label}
@@ -55,7 +60,6 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
               className={`flex items-center gap-3 px-4 py-3 rounded-xl relative transition-all hover:bg-gray-50 ${
                 isActive ? "bg-red-200 text-gray-900" : "text-gray-700"
               }`}
-              onClick={() => setActiveTab(item.label.toLowerCase())}
             >
               <item.icon size={22} className={isActive ? "text-red-500" : ""} />
               <span className="font-medium text-base">{item.label}</span>

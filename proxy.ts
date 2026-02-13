@@ -47,6 +47,7 @@ export const config = {
     matcher: [
         '/admin/:path*',
         '/user/:path*',
+        '/dashboard/:path*',
         '/login',
         '/register',
         '/request-reset-password',

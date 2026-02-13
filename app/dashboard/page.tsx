@@ -35,10 +35,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen flex font-['Poppins'] bg-gray-50">
-      <Sidebar
-        activeTab={activeTab === "upcoming" ? "home" : "myteams"}
-        setActiveTab={(tab) => setActiveTab(tab === "home" ? "upcoming" : "myteams")}
-      />
+      <Sidebar />
 
       <main className="flex-1 bg-white">
         <header className="border-b border-gray-200 px-8 py-6 flex items-center justify-between">
