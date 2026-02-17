@@ -7,11 +7,11 @@ import {
   ArrowUp,
   Clock3,
   Gift,
-  Star,
   CalendarDays,
   UserPlus,
   Trophy,
-  Coins,
+  Wallet,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Sidebar from "../_components/Sidebar";
@@ -31,7 +31,6 @@ interface EarnTask {
   subtitle: string;
   credits: string;
   color: string;
-  actionLabel: string;
   actionMessage: string;
 }
 
@@ -69,8 +68,7 @@ const earnTasks: EarnTask[] = [
     subtitle: "Login every day to earn credits",
     credits: "+100",
     color: "#4CAF50",
-    actionLabel: "Daily Bonus",
-    actionMessage: "You've earned 100 credits!",
+    actionMessage: "You have claimed Daily Login Bonus (+100)",
   },
   {
     icon: UserPlus,
@@ -78,17 +76,15 @@ const earnTasks: EarnTask[] = [
     subtitle: "Earn credits for each friend who joins",
     credits: "+500",
     color: "#2196F3",
-    actionLabel: "Referral Code",
-    actionMessage: "Your code: FANUP2025",
+    actionMessage: "Referral code copied: FANUP2025",
   },
   {
     icon: Trophy,
     title: "Complete Achievements",
     subtitle: "Unlock achievements to earn credits",
     credits: "+200",
-    color: "#9C27B0",
-    actionLabel: "Achievements",
-    actionMessage: "Keep playing to unlock and earn more credits.",
+    color: "#F59E0B",
+    actionMessage: "Achievement progress opened",
   },
 ];
 
@@ -99,8 +95,7 @@ const formatCredits = (value: number) =>
 
 export default function WalletPage() {
   const { user, loading } = useAuth();
-  const [isEarnModalOpen, setIsEarnModalOpen] = useState(false);
-  const [dialog, setDialog] = useState<{ title: string; message: string } | null>(null);
+  const [taskMessage, setTaskMessage] = useState<string | null>(null);
 
   const fullName = user?.fullName || "User";
   const balance = user?.balance ?? 10450;
@@ -122,9 +117,7 @@ export default function WalletPage() {
   );
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-lg">Loading...</div>
-    );
+    return <div className="min-h-screen flex items-center justify-center text-lg">Loading...</div>;
   }
 
   return (
@@ -143,100 +136,73 @@ export default function WalletPage() {
           </button>
         </header>
 
-        <div className="p-8 space-y-8">
-          <section className="bg-gradient-to-br from-yellow-300 via-orange-300 to-orange-400 rounded-2xl p-8 shadow-md max-w-4xl">
-            <div className="flex items-center gap-2 text-gray-900">
-              <p className="text-base font-semibold">Total Credits</p>
-              <Coins className="w-5 h-5 opacity-70" />
-            </div>
+        <div className="p-8 max-w-7xl">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <section className="xl:col-span-2 bg-gradient-to-br from-yellow-100 via-orange-100 to-red-100 rounded-3xl p-8 border border-orange-200">
+              <div className="flex items-center gap-2 text-gray-900">
+                <Wallet className="w-5 h-5 text-orange-600" />
+                <p className="text-base font-semibold">Total Credits</p>
+              </div>
 
-            <p className="text-5xl md:text-6xl font-bold text-gray-900 mt-3">{formatCredits(balance)}</p>
+              <p className="text-5xl md:text-6xl font-bold text-gray-900 mt-3">{formatCredits(balance)}</p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-              <BalanceStat label="Contest Wins" value={formatCredits(transactionsTotal.credit)} />
-              <BalanceStat label="Contest Spend" value={formatCredits(transactionsTotal.debit)} />
-              <BalanceStat label="Bonus Credits" value="850" />
-            </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-8">
+                <BalanceStat label="Contest Wins" value={formatCredits(transactionsTotal.credit)} />
+                <BalanceStat label="Contest Spend" value={formatCredits(transactionsTotal.debit)} />
+                <BalanceStat label="Bonus Credits" value="850" />
+              </div>
 
-            <button
-              onClick={() => setIsEarnModalOpen(true)}
-              className="mt-7 bg-white text-orange-500 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition shadow-sm inline-flex items-center gap-2"
-            >
-              <Star className="w-5 h-5" />
-              Earn More Credits
-            </button>
-          </section>
+              <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/80 border border-white text-sm text-gray-700">
+                <Sparkles className="w-4 h-4 text-orange-500" />
+                Last updated from server balance snapshot
+              </div>
+            </section>
 
-          <section className="max-w-4xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-2xl font-bold text-gray-900">Recent Transactions</h3>
-              <button className="text-red-500 font-semibold hover:text-red-600 transition">View All</button>
-            </div>
+            <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h3 className="text-xl font-bold text-gray-900">Earn More Credits</h3>
+              <p className="text-sm text-gray-600 mt-1">Complete tasks to boost your wallet.</p>
 
-            <div className="space-y-3">
-              {transactions.map((item) => (
-                <TransactionRow key={`${item.title}-${item.date.toISOString()}`} item={item} />
-              ))}
-            </div>
-          </section>
+              <div className="mt-5 space-y-3">
+                {earnTasks.map((task) => (
+                  <EarnTaskCard
+                    key={task.title}
+                    task={task}
+                    onSelect={() => setTaskMessage(task.actionMessage)}
+                  />
+                ))}
+              </div>
+            </section>
+
+            <section className="xl:col-span-3 rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900">Recent Transactions</h3>
+                <button className="text-sm font-semibold text-red-500 hover:text-red-600 transition">View All</button>
+              </div>
+
+              {taskMessage && (
+                <div className="mx-6 mt-5 px-4 py-3 rounded-xl bg-orange-50 border border-orange-200 text-sm text-orange-700">
+                  {taskMessage}
+                </div>
+              )}
+
+              <div className="p-6 space-y-3">
+                {transactions.map((item) => (
+                  <TransactionRow key={`${item.title}-${item.date.toISOString()}`} item={item} />
+                ))}
+              </div>
+            </section>
+          </div>
         </div>
       </main>
-
-      {isEarnModalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl p-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Star className="w-6 h-6 text-orange-500" />
-              <h4 className="text-xl font-bold text-gray-900">Earn More Credits</h4>
-            </div>
-            <p className="text-gray-600 mb-5">Complete tasks to earn free credits</p>
-
-            <div className="space-y-3">
-              {earnTasks.map((task) => (
-                <EarnTaskCard
-                  key={task.title}
-                  task={task}
-                  onSelect={() => {
-                    setIsEarnModalOpen(false);
-                    setDialog({ title: task.actionLabel, message: task.actionMessage });
-                  }}
-                />
-              ))}
-            </div>
-
-            <button
-              onClick={() => setIsEarnModalOpen(false)}
-              className="mt-6 w-full border border-gray-300 rounded-xl py-2.5 text-gray-700 font-medium hover:bg-gray-50"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {dialog && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
-            <h5 className="text-lg font-bold text-gray-900">{dialog.title}</h5>
-            <p className="text-gray-600 mt-2">{dialog.message}</p>
-            <button
-              onClick={() => setDialog(null)}
-              className="mt-5 px-4 py-2 rounded-lg text-white bg-red-500 hover:bg-red-600"
-            >
-              OK
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 function BalanceStat({ label, value }: { label: string; value: string }) {
   return (
-    <div>
+    <div className="rounded-2xl bg-white/80 border border-white p-4">
       <p className="text-sm text-gray-700">{label}</p>
-      <p className="text-xl font-bold text-gray-900 mt-1">{value}</p>
+      <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
     </div>
   );
 }
@@ -245,7 +211,7 @@ function TransactionRow({ item }: { item: Transaction }) {
   const isCredit = item.type === "credit";
 
   return (
-    <div className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+    <div className="p-4 bg-white rounded-2xl border border-gray-100 flex items-center gap-4 hover:border-gray-200 transition">
       <div
         className={`w-11 h-11 rounded-xl flex items-center justify-center ${
           isCredit ? "bg-green-50" : "bg-red-50"
@@ -271,7 +237,9 @@ function TransactionRow({ item }: { item: Transaction }) {
             hour: "2-digit",
             minute: "2-digit",
             hour12: false,
-          }).format(item.date).replace(",", " ")}
+          })
+            .format(item.date)
+            .replace(",", " ")}
         </p>
       </div>
 
@@ -292,26 +260,23 @@ function EarnTaskCard({ task, onSelect }: { task: EarnTask; onSelect: () => void
       className="w-full text-left p-4 rounded-xl border transition hover:shadow-sm"
       style={{
         backgroundColor: `${task.color}0D`,
-        borderColor: `${task.color}40`,
+        borderColor: `${task.color}33`,
       }}
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <div
-          className="w-11 h-11 rounded-lg flex items-center justify-center"
+          className="w-10 h-10 rounded-lg flex items-center justify-center"
           style={{ backgroundColor: `${task.color}1F` }}
         >
           <Icon className="w-5 h-5" style={{ color: task.color }} />
         </div>
 
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <p className="font-semibold text-gray-900">{task.title}</p>
-          <p className="text-sm text-gray-600">{task.subtitle}</p>
+          <p className="text-sm text-gray-600 truncate">{task.subtitle}</p>
         </div>
 
-        <span
-          className="px-3 py-1 rounded-full text-sm font-semibold text-white"
-          style={{ backgroundColor: task.color }}
-        >
+        <span className="px-2.5 py-1 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: task.color }}>
           {task.credits}
         </span>
       </div>
