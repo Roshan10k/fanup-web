@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 
 interface MatchCardProps {
   league: string;
@@ -40,9 +41,12 @@ export default function MatchCard({ league, date, time, team1, team2, isLive }: 
           </div>
         </div>
 
-        <button className="w-full bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white py-3.5 rounded-xl font-medium transition transform hover:scale-[1.02] shadow-sm">
+        <Link
+          href="/dashboard/create-team"
+          className="block w-full text-center bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white py-3.5 rounded-xl font-medium transition transform hover:scale-[1.02] shadow-sm"
+        >
           Create Team
-        </button>
+        </Link>
       </div>
     </div>
   );

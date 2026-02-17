@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 
 interface TeamCardProps {
   league: string;
@@ -8,9 +9,11 @@ interface TeamCardProps {
   team2: string;
   teamName: string;
   points: number;
+  viewHref?: string;
+  editHref?: string;
 }
 
-export default function TeamCard({ league, date, time, team1, team2, teamName, points }: TeamCardProps) {
+export default function TeamCard({ league, date, time, team1, team2, teamName, points, viewHref, editHref }: TeamCardProps) {
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300">
       <div className="p-6">
@@ -37,8 +40,25 @@ export default function TeamCard({ league, date, time, team1, team2, teamName, p
         </div>
 
         <div className="flex gap-3">
-          <button className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3.5 rounded-xl font-medium transition shadow-sm">View Team</button>
-          <button className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3.5 rounded-xl font-medium transition">Edit</button>
+          {viewHref ? (
+            <Link href={viewHref} className="flex-1 text-center bg-red-500 hover:bg-red-600 text-white py-3.5 rounded-xl font-medium transition shadow-sm">
+              View Team
+            </Link>
+          ) : (
+            <button className="flex-1 bg-red-300 text-white py-3.5 rounded-xl font-medium cursor-not-allowed" disabled>
+              View Team
+            </button>
+          )}
+
+          {editHref ? (
+            <Link href={editHref} className="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-3.5 rounded-xl font-medium transition">
+              Edit
+            </Link>
+          ) : (
+            <button className="flex-1 bg-gray-100 text-gray-400 py-3.5 rounded-xl font-medium cursor-not-allowed" disabled>
+              Edit
+            </button>
+          )}
         </div>
       </div>
     </div>
