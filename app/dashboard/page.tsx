@@ -1,19 +1,43 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, CalendarDays, Plus, Target, Trophy, Users } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Sidebar from "./_components/Sidebar";
 import MatchCard from "./_components/MatchCard";
 import TeamCard from "./_components/TeamCard";
 import { encodeSelectedIds, SAVED_TEAMS_STORAGE_KEY, type SavedTeam } from "./create-team/teamBuilder";
 
+interface ApiMatch {
+  _id: string;
+  league?: string;
+  startTime: string;
+  status?: string;
+  teamA?: { shortName?: string };
+  teamB?: { shortName?: string };
+}
+
 export default function DashboardPage() {
   const { user, loading } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<"upcoming" | "myteams">("upcoming");
+  const [completedMatches, setCompletedMatches] = useState<
+    Array<{
+      id: string;
+      league: string;
+      date: string;
+      time: string;
+      team1: string;
+      team2: string;
+      isLive: boolean;
+      createHref: string;
+    }>
+  >([]);
+  const [matchesLoading, setMatchesLoading] = useState(true);
+  const [matchesError, setMatchesError] = useState<string | null>(null);
   const [savedTeams] = useState<SavedTeam[]>(() => {
     if (typeof window === "undefined") {
       return [];
@@ -35,13 +59,78 @@ export default function DashboardPage() {
   const fullName = user?.fullName || "User";
   const balance = user?.balance ?? 0;
 
-  const upcomingMatches = [
-    { id: 1, league: "NPL", date: "4th Nov, 26", time: "3:15 PM", team1: "IND", team2: "AUS", isLive: true },
-    { id: 2, league: "NPL", date: "4th Nov, 26", time: "3:15 PM", team1: "IND", team2: "AUS", isLive: false },
-    { id: 3, league: "NPL", date: "5th Nov, 26", time: "7:00 PM", team1: "PAK", team2: "SA", isLive: false },
-    { id: 4, league: "NPL", date: "6th Nov, 26", time: "1:00 PM", team1: "ENG", team2: "NZ", isLive: false },
-    { id: 5, league: "NPL", date: "7th Nov, 26", time: "3:15 PM", team1: "IND", team2: "SL", isLive: false },
-  ];
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCompletedMatches = async () => {
+      setMatchesLoading(true);
+      setMatchesError(null);
+
+      try {
+        const API_BASE_URL =
+          process.env.NEXT_PUBLIC_API_URL ||
+          process.env.NEXT_PUBLIC_API_BASE_URL ||
+          "http://localhost:3001";
+        const response = await fetch(
+          `${API_BASE_URL}/api/matches/completed?page=1&size=12`,
+          {
+            cache: "no-store",
+          }
+        );
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload?.success) {
+          throw new Error(payload?.message || "Failed to load matches");
+        }
+
+        const rows: ApiMatch[] = Array.isArray(payload?.data) ? payload.data : [];
+        const mapped = rows.map((match) => {
+          const startTime = new Date(match.startTime);
+          const league = String(match.league || "League");
+          const date = startTime.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "2-digit",
+          });
+          const time = startTime.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          });
+          const team1 = String(match.teamA?.shortName || "T1");
+          const team2 = String(match.teamB?.shortName || "T2");
+          return {
+            id: String(match._id),
+            league,
+            date,
+            time,
+            team1,
+            team2,
+            isLive: match.status === "live",
+            createHref: `/dashboard/create-team?matchId=${encodeURIComponent(String(match._id))}&league=${encodeURIComponent(league)}&date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}&team1=${encodeURIComponent(team1)}&team2=${encodeURIComponent(team2)}`,
+          };
+        });
+
+        if (isMounted) {
+          setCompletedMatches(mapped);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setMatchesError(
+            error instanceof Error ? error.message : "Failed to load matches"
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setMatchesLoading(false);
+        }
+      }
+    };
+
+    void loadCompletedMatches();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const tabFromQuery = searchParams.get("tab");
   const resolvedActiveTab =
@@ -91,7 +180,7 @@ export default function DashboardPage() {
               <h3 className="text-lg font-bold text-gray-900">Quick Snapshot</h3>
               <div className="mt-4 space-y-3">
                 <StatItem icon={<Users className="w-4 h-4 text-blue-500" />} label="My Teams" value={String(allMyTeams.length)} />
-                <StatItem icon={<CalendarDays className="w-4 h-4 text-orange-500" />} label="Upcoming Matches" value={String(upcomingMatches.length)} />
+                <StatItem icon={<CalendarDays className="w-4 h-4 text-orange-500" />} label="Matches" value={String(completedMatches.length)} />
                 <StatItem icon={<Target className="w-4 h-4 text-green-500" />} label="Avg Points" value={allMyTeams.length ? String(Math.round(allMyTeams.reduce((acc, team) => acc + team.points, 0) / allMyTeams.length)) : "0"} />
                 <StatItem icon={<Trophy className="w-4 h-4 text-yellow-600" />} label="Best Score" value={allMyTeams.length ? String(Math.max(...allMyTeams.map((team) => team.points))) : "0"} />
               </div>
@@ -100,7 +189,10 @@ export default function DashboardPage() {
 
           <section className="rounded-2xl border border-gray-200 bg-white p-2 inline-flex gap-2">
             <button
-              onClick={() => setActiveTab("upcoming")}
+              onClick={() => {
+                setActiveTab("upcoming");
+                router.replace("/dashboard?tab=upcoming");
+              }}
               className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition ${
                 resolvedActiveTab === "upcoming"
                   ? "bg-red-500 text-white shadow-sm"
@@ -110,7 +202,10 @@ export default function DashboardPage() {
               Upcoming Matches
             </button>
             <button
-              onClick={() => setActiveTab("myteams")}
+              onClick={() => {
+                setActiveTab("myteams");
+                router.replace("/dashboard?tab=myteams");
+              }}
               className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition ${
                 resolvedActiveTab === "myteams"
                   ? "bg-red-500 text-white shadow-sm"
@@ -123,7 +218,21 @@ export default function DashboardPage() {
 
           {resolvedActiveTab === "upcoming" ? (
             <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {upcomingMatches.map((match) => <MatchCard key={match.id} {...match} />)}
+              {matchesLoading ? (
+                <div className="col-span-full rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-600">
+                  Loading matches...
+                </div>
+              ) : matchesError ? (
+                <div className="col-span-full rounded-2xl border border-red-200 bg-red-50 p-8 text-center text-red-700">
+                  {matchesError}
+                </div>
+              ) : completedMatches.length > 0 ? (
+                completedMatches.map((match) => <MatchCard key={match.id} {...match} />)
+              ) : (
+                <div className="col-span-full rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-600">
+                  No matches available.
+                </div>
+              )}
             </section>
           ) : allMyTeams.length > 0 ? (
             <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -137,8 +246,7 @@ export default function DashboardPage() {
                   team2={team.team2}
                   teamName={team.teamName}
                   points={team.points}
-                  viewHref={`/dashboard/create-team/preview?selected=${encodeSelectedIds(team.playerIds)}&teamName=${encodeURIComponent(team.teamName)}&teamId=${team.id}&readonly=1`}
-                  editHref={`/dashboard/create-team?selected=${encodeSelectedIds(team.playerIds)}&teamName=${encodeURIComponent(team.teamName)}&teamId=${team.id}`}
+                  viewHref={`/dashboard/create-team/preview?selected=${encodeSelectedIds(team.playerIds)}&teamName=${encodeURIComponent(team.teamName)}&teamId=${team.id}&readonly=1&captainId=${encodeURIComponent(team.captainId || "")}&viceCaptainId=${encodeURIComponent(team.viceCaptainId || "")}&matchId=${encodeURIComponent(team.matchId || "")}&league=${encodeURIComponent(team.league)}&date=${encodeURIComponent(team.date)}&time=${encodeURIComponent(team.time)}&team1=${encodeURIComponent(team.team1)}&team2=${encodeURIComponent(team.team2)}`}
                 />
               ))}
             </section>

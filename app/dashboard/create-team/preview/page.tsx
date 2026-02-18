@@ -463,14 +463,23 @@ function PreviewPlayer({
   role,
   top,
   left,
+  points = 0,
+  multiplier = 1,
+  badge,
+  showPoints = true,
   muted = false,
 }: {
   name: string;
   role: Role;
   top: string;
   left: string;
+  points?: number;
+  multiplier?: number;
+  badge?: "C" | "VC";
+  showPoints?: boolean;
   muted?: boolean;
 }) {
+  const finalPoints = multiplier === 1 ? points : points * multiplier;
   return (
     <div
       className={`absolute -translate-x-1/2 -translate-y-1/2 w-24 md:w-28 text-center ${muted ? "opacity-50" : "opacity-100"}`}
@@ -481,6 +490,14 @@ function PreviewPlayer({
       <span className="inline-flex rounded-full border border-emerald-800/40 bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-900 shadow-sm mt-1">
         {role}
       </span>
+      {badge ? (
+        <p className="text-[10px] font-bold text-red-700 mt-1">
+          {badge} {multiplier}x
+        </p>
+      ) : null}
+      {showPoints ? (
+        <p className="text-[10px] font-bold text-green-900 mt-1">{finalPoints} pts</p>
+      ) : null}
     </div>
   );
 }
