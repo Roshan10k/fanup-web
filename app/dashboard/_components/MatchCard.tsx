@@ -8,9 +8,10 @@ interface MatchCardProps {
   team1: string;
   team2: string;
   isLive?: boolean;
+  createHref?: string;
 }
 
-export default function MatchCard({ league, date, time, team1, team2, isLive }: MatchCardProps) {
+export default function MatchCard({ league, date, time, team1, team2, isLive, createHref = "/dashboard/create-team" }: MatchCardProps) {
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300">
       <div className="p-6">
@@ -42,7 +43,7 @@ export default function MatchCard({ league, date, time, team1, team2, isLive }: 
         </div>
 
         <Link
-          href="/dashboard/create-team"
+          href={createHref}
           className="block w-full text-center bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white py-3.5 rounded-xl font-medium transition transform hover:scale-[1.02] shadow-sm"
         >
           Create Team

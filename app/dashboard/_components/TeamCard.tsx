@@ -10,10 +10,9 @@ interface TeamCardProps {
   teamName: string;
   points: number;
   viewHref?: string;
-  editHref?: string;
 }
 
-export default function TeamCard({ league, date, time, team1, team2, teamName, points, viewHref, editHref }: TeamCardProps) {
+export default function TeamCard({ league, date, time, team1, team2, teamName, points, viewHref }: TeamCardProps) {
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300">
       <div className="p-6">
@@ -39,24 +38,14 @@ export default function TeamCard({ league, date, time, team1, team2, teamName, p
           <p className="text-2xl font-bold text-green-600">{points}</p>
         </div>
 
-        <div className="flex gap-3">
+        <div>
           {viewHref ? (
-            <Link href={viewHref} className="flex-1 text-center bg-red-500 hover:bg-red-600 text-white py-3.5 rounded-xl font-medium transition shadow-sm">
+            <Link href={viewHref} className="block w-full text-center bg-red-500 hover:bg-red-600 text-white py-3.5 rounded-xl font-medium transition shadow-sm">
               View Team
             </Link>
           ) : (
-            <button className="flex-1 bg-red-300 text-white py-3.5 rounded-xl font-medium cursor-not-allowed" disabled>
+            <button className="w-full bg-red-300 text-white py-3.5 rounded-xl font-medium cursor-not-allowed" disabled>
               View Team
-            </button>
-          )}
-
-          {editHref ? (
-            <Link href={editHref} className="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-3.5 rounded-xl font-medium transition">
-              Edit
-            </Link>
-          ) : (
-            <button className="flex-1 bg-gray-100 text-gray-400 py-3.5 rounded-xl font-medium cursor-not-allowed" disabled>
-              Edit
             </button>
           )}
         </div>
