@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "../_components/Sidebar";
@@ -10,29 +10,99 @@ import {
   getRoleCounts,
   isValidTeamComposition,
   matchInfo,
+  mapBackendRoleToUiRole,
   players,
   roleRules,
   type Player,
   type Role,
 } from "./teamBuilder";
 
+interface ApiPlayer {
+  _id: string;
+  fullName?: string;
+  teamShortName?: string;
+  role?: string;
+  credit?: number;
+}
+
 export default function CreateTeamPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const teamIdParam = searchParams.get("teamId");
   const teamId = teamIdParam ? Number(teamIdParam) : null;
+  const captainId = searchParams.get("captainId") || "";
+  const viceCaptainId = searchParams.get("viceCaptainId") || "";
 
   const [activeRole, setActiveRole] = useState<"ALL" | Role>("ALL");
   const [teamName, setTeamName] = useState(() => searchParams.get("teamName")?.trim() || "");
-  const [selected, setSelected] = useState<number[]>(() => decodeSelectedIds(searchParams.get("selected")));
+  const [selected, setSelected] = useState<string[]>(() => decodeSelectedIds(searchParams.get("selected")));
+  const [availablePlayers, setAvailablePlayers] = useState<Player[]>(players);
+  const matchMeta = useMemo(
+    () => ({
+      matchId: searchParams.get("matchId") || "",
+      league: searchParams.get("league") || matchInfo.league,
+      date: searchParams.get("date") || matchInfo.date,
+      time: searchParams.get("time") || matchInfo.time,
+      team1: searchParams.get("team1") || matchInfo.team1,
+      team2: searchParams.get("team2") || matchInfo.team2,
+    }),
+    [searchParams]
+  );
 
-  const selectedPlayers = useMemo(() => players.filter((player) => selected.includes(player.id)), [selected]);
-  const roleCounts = getRoleCounts(selected);
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadPlayers = async () => {
+      try {
+        const API_BASE_URL =
+          process.env.NEXT_PUBLIC_API_URL ||
+          process.env.NEXT_PUBLIC_API_BASE_URL ||
+          "http://localhost:3001";
+        const response = await fetch(
+          `${API_BASE_URL}/api/players?teamShortNames=${encodeURIComponent(
+            `${matchMeta.team1},${matchMeta.team2}`
+          )}`,
+          { cache: "no-store" }
+        );
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload?.success || !Array.isArray(payload?.data)) {
+          return;
+        }
+
+        const mapped: Player[] = (payload.data as ApiPlayer[]).map((item) => ({
+          id: String(item._id),
+          name: String(item.fullName || "Player"),
+          team: String(item.teamShortName || ""),
+          role: mapBackendRoleToUiRole(String(item.role || "")),
+          credit: Number(item.credit || 0),
+        }));
+
+        if (isMounted && mapped.length > 0) {
+          setAvailablePlayers(mapped);
+        }
+      } catch {
+        // Keep fallback static players when API load fails.
+      }
+    };
+
+    void loadPlayers();
+    return () => {
+      isMounted = false;
+    };
+  }, [matchMeta.team1, matchMeta.team2]);
+
+  const selectedPlayers = useMemo(
+    () => availablePlayers.filter((player) => selected.includes(player.id)),
+    [availablePlayers, selected]
+  );
+  const roleCounts = getRoleCounts(selected, availablePlayers);
 
   const usedCredit = selectedPlayers.reduce((sum, player) => sum + player.credit, 0);
   const creditLeft = Math.max(0, 100 - usedCredit);
 
-  const visiblePlayers = players.filter((player) => activeRole === "ALL" || player.role === activeRole);
+  const visiblePlayers = availablePlayers.filter(
+    (player) => activeRole === "ALL" || player.role === activeRole
+  );
 
   const togglePlayer = (player: Player) => {
     setSelected((prev) => {
@@ -47,7 +117,7 @@ export default function CreateTeamPage() {
       }
 
       const roleCount = prev
-        .map((id) => players.find((item) => item.id === id))
+        .map((id) => availablePlayers.find((item) => item.id === id))
         .filter((item): item is Player => Boolean(item) && item.role === player.role).length;
 
       if (roleCount >= roleRules[player.role].max) {
@@ -59,7 +129,7 @@ export default function CreateTeamPage() {
   };
 
   const hasTeamName = teamName.trim().length > 0;
-  const isReadyForPreview = hasTeamName && isValidTeamComposition(selected);
+  const isReadyForPreview = hasTeamName && isValidTeamComposition(selected, availablePlayers);
 
   return (
     <div className="min-h-screen bg-gray-50 font-['Poppins'] flex">
@@ -71,7 +141,7 @@ export default function CreateTeamPage() {
             <p className="text-xs uppercase tracking-[0.22em] text-gray-400 font-semibold mb-2">Team Builder</p>
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Create Team</h1>
             <p className="text-gray-500 mt-1">
-              {matchInfo.team1} vs {matchInfo.team2}, {matchInfo.date}
+              {matchMeta.team1} vs {matchMeta.team2}, {matchMeta.date}
             </p>
           </div>
 
@@ -184,7 +254,7 @@ export default function CreateTeamPage() {
             <button
               onClick={() =>
                 router.push(
-                  `/dashboard/create-team/preview?selected=${encodeSelectedIds(selected)}&teamName=${encodeURIComponent(teamName.trim())}${teamId ? `&teamId=${teamId}` : ""}`,
+                  `/dashboard/create-team/preview?selected=${encodeSelectedIds(selected)}&teamName=${encodeURIComponent(teamName.trim())}${teamId ? `&teamId=${teamId}` : ""}&captainId=${encodeURIComponent(captainId)}&viceCaptainId=${encodeURIComponent(viceCaptainId)}&matchId=${encodeURIComponent(matchMeta.matchId)}&league=${encodeURIComponent(matchMeta.league)}&date=${encodeURIComponent(matchMeta.date)}&time=${encodeURIComponent(matchMeta.time)}&team1=${encodeURIComponent(matchMeta.team1)}&team2=${encodeURIComponent(matchMeta.team2)}`,
                 )
               }
               disabled={!isReadyForPreview}
