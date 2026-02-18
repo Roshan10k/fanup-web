@@ -8,11 +8,13 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { handleLogin } from "@/app/lib/action/auth_action";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
+  const { checkAuth } = useAuth();
 
   const {
     register,
@@ -30,6 +32,7 @@ export default function LoginForm() {
       const result = await handleLogin(data);
 
       if (result.success) {
+        await checkAuth();
         if (result.data?.role === "admin") {
           router.replace("/admin");
         } else {
