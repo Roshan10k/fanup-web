@@ -26,6 +26,7 @@ interface ApiPlayer {
 }
 
 export default function CreateTeamPage() {
+  const isDev = process.env.NODE_ENV !== "production";
   const searchParams = useSearchParams();
   const router = useRouter();
   const teamIdParam = searchParams.get("teamId");
@@ -36,23 +37,37 @@ export default function CreateTeamPage() {
   const [activeRole, setActiveRole] = useState<"ALL" | Role>("ALL");
   const [teamName, setTeamName] = useState(() => searchParams.get("teamName")?.trim() || "");
   const [selected, setSelected] = useState<string[]>(() => decodeSelectedIds(searchParams.get("selected")));
-  const [availablePlayers, setAvailablePlayers] = useState<Player[]>(players);
+  const [availablePlayers, setAvailablePlayers] = useState<Player[]>(isDev ? players : []);
+  const [playersError, setPlayersError] = useState<string | null>(null);
   const matchMeta = useMemo(
     () => ({
       matchId: searchParams.get("matchId") || "",
-      league: searchParams.get("league") || matchInfo.league,
-      date: searchParams.get("date") || matchInfo.date,
-      time: searchParams.get("time") || matchInfo.time,
-      team1: searchParams.get("team1") || matchInfo.team1,
-      team2: searchParams.get("team2") || matchInfo.team2,
+      league: searchParams.get("league") || (isDev ? matchInfo.league : ""),
+      date: searchParams.get("date") || (isDev ? matchInfo.date : ""),
+      time: searchParams.get("time") || (isDev ? matchInfo.time : ""),
+      team1: searchParams.get("team1") || (isDev ? matchInfo.team1 : ""),
+      team2: searchParams.get("team2") || (isDev ? matchInfo.team2 : ""),
     }),
-    [searchParams]
+    [isDev, searchParams]
   );
+  const hasRequiredMatchMeta = Boolean(matchMeta.matchId && matchMeta.team1 && matchMeta.team2);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadPlayers = async () => {
+      if (!hasRequiredMatchMeta) {
+        if (!isDev && isMounted) {
+          setPlayersError("Missing match information. Please open Create Team from a match card.");
+          setAvailablePlayers([]);
+        }
+        return;
+      }
+
+      if (isMounted) {
+        setPlayersError(null);
+      }
+
       try {
         const API_BASE_URL =
           process.env.NEXT_PUBLIC_API_URL ||
@@ -66,6 +81,10 @@ export default function CreateTeamPage() {
         );
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload?.success || !Array.isArray(payload?.data)) {
+          if (!isDev && isMounted) {
+            setAvailablePlayers([]);
+            setPlayersError(payload?.message || "Failed to load players for this match.");
+          }
           return;
         }
 
@@ -77,11 +96,21 @@ export default function CreateTeamPage() {
           credit: Number(item.credit || 0),
         }));
 
-        if (isMounted && mapped.length > 0) {
-          setAvailablePlayers(mapped);
+        if (isMounted) {
+          if (mapped.length > 0) {
+            setAvailablePlayers(mapped);
+            return;
+          }
+          if (!isDev) {
+            setAvailablePlayers([]);
+            setPlayersError("No players available for this match.");
+          }
         }
       } catch {
-        // Keep fallback static players when API load fails.
+        if (!isDev && isMounted) {
+          setAvailablePlayers([]);
+          setPlayersError("Failed to load players. Please try again.");
+        }
       }
     };
 
@@ -89,7 +118,7 @@ export default function CreateTeamPage() {
     return () => {
       isMounted = false;
     };
-  }, [matchMeta.team1, matchMeta.team2]);
+  }, [hasRequiredMatchMeta, isDev, matchMeta.team1, matchMeta.team2]);
 
   const selectedPlayers = useMemo(
     () => availablePlayers.filter((player) => selected.includes(player.id)),
@@ -118,7 +147,7 @@ export default function CreateTeamPage() {
 
       const roleCount = prev
         .map((id) => availablePlayers.find((item) => item.id === id))
-        .filter((item): item is Player => Boolean(item) && item.role === player.role).length;
+        .filter((item): item is Player => item !== undefined && item.role === player.role).length;
 
       if (roleCount >= roleRules[player.role].max) {
         return prev;
@@ -129,7 +158,12 @@ export default function CreateTeamPage() {
   };
 
   const hasTeamName = teamName.trim().length > 0;
-  const isReadyForPreview = hasTeamName && isValidTeamComposition(selected, availablePlayers);
+  const isReadyForPreview =
+    hasTeamName &&
+    !playersError &&
+    availablePlayers.length > 0 &&
+    hasRequiredMatchMeta &&
+    isValidTeamComposition(selected, availablePlayers);
 
   return (
     <div className="min-h-screen bg-gray-50 font-['Poppins'] flex">
@@ -144,6 +178,12 @@ export default function CreateTeamPage() {
               {matchMeta.team1} vs {matchMeta.team2}, {matchMeta.date}
             </p>
           </div>
+
+          {playersError ? (
+            <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {playersError}
+            </div>
+          ) : null}
 
           <section className="bg-white border border-gray-200 rounded-3xl p-5 md:p-6 xl:p-7 shadow-sm">
             <div className="mb-5">
@@ -238,6 +278,11 @@ export default function CreateTeamPage() {
                   </button>
                 );
               })}
+              {!visiblePlayers.length && !playersError ? (
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-600 text-center">
+                  No players available for this match.
+                </div>
+              ) : null}
             </div>
           </section>
         </div>

@@ -5,6 +5,14 @@ import { ArrowLeft, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "../../_components/Sidebar";
+import ThemeToggle from "../../_components/ThemeToggle";
+import { useThemeMode } from "../../_components/useThemeMode";
+import { useAuth } from "@/context/AuthContext";
+import DeleteTeamModal from "../_components/DeleteTeamModal";
+import {
+  deleteContestEntryAction,
+  submitContestEntryAction,
+} from "@/app/lib/action/leaderboard_action";
 import {
   decodeSelectedIds,
   encodeSelectedIds,
@@ -14,9 +22,7 @@ import {
   mapBackendRoleToUiRole,
   players,
   roleRules,
-  SAVED_TEAMS_STORAGE_KEY,
   type Role,
-  type SavedTeam,
 } from "../teamBuilder";
 
 interface ApiPlayer {
@@ -42,12 +48,15 @@ const xSlotsByCount: Record<number, number[]> = {
 };
 
 export default function CreateTeamPreviewPage() {
+  const isDev = process.env.NODE_ENV !== "production";
+  const { user, setUser } = useAuth();
+  const { isDark } = useThemeMode();
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const selectedParam = searchParams.get("selected");
   const selected = useMemo(() => decodeSelectedIds(selectedParam), [selectedParam]);
-  const [availablePlayers, setAvailablePlayers] = useState(players);
+  const [availablePlayers, setAvailablePlayers] = useState(isDev ? players : []);
   const selectedPlayers = useMemo(
     () => availablePlayers.filter((player) => selected.includes(player.id)),
     [availablePlayers, selected]
@@ -60,20 +69,24 @@ export default function CreateTeamPreviewPage() {
   const captainIdParam = searchParams.get("captainId") || "";
   const viceCaptainIdParam = searchParams.get("viceCaptainId") || "";
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [playerPoints, setPlayerPoints] = useState<Record<string, number>>({});
   const [captainId, setCaptainId] = useState(captainIdParam);
   const [viceCaptainId, setViceCaptainId] = useState(viceCaptainIdParam);
   const matchMeta = useMemo(
     () => ({
       matchId: searchParams.get("matchId") || "",
-      league: searchParams.get("league") || matchInfo.league,
-      date: searchParams.get("date") || matchInfo.date,
-      time: searchParams.get("time") || matchInfo.time,
-      team1: searchParams.get("team1") || matchInfo.team1,
-      team2: searchParams.get("team2") || matchInfo.team2,
+      league: searchParams.get("league") || (isDev ? matchInfo.league : ""),
+      date: searchParams.get("date") || (isDev ? matchInfo.date : ""),
+      time: searchParams.get("time") || (isDev ? matchInfo.time : ""),
+      team1: searchParams.get("team1") || (isDev ? matchInfo.team1 : ""),
+      team2: searchParams.get("team2") || (isDev ? matchInfo.team2 : ""),
     }),
-    [searchParams]
+    [isDev, searchParams]
   );
+  const hasRequiredMatchMeta = Boolean(matchMeta.matchId && matchMeta.team1 && matchMeta.team2);
 
   const selectedByRole = useMemo(() => {
     return {
@@ -98,6 +111,18 @@ export default function CreateTeamPreviewPage() {
     let isMounted = true;
 
     const loadPlayers = async () => {
+      if (!hasRequiredMatchMeta) {
+        if (!isDev && isMounted) {
+          setAvailablePlayers([]);
+          setSaveError("Missing match information. Please recreate team from a match card.");
+        }
+        return;
+      }
+
+      if (isMounted) {
+        setSaveError(null);
+      }
+
       try {
         const API_BASE_URL =
           process.env.NEXT_PUBLIC_API_URL ||
@@ -111,6 +136,10 @@ export default function CreateTeamPreviewPage() {
         );
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload?.success || !Array.isArray(payload?.data)) {
+          if (!isDev && isMounted) {
+            setAvailablePlayers([]);
+            setSaveError(payload?.message || "Failed to load players for this match.");
+          }
           return;
         }
 
@@ -122,11 +151,21 @@ export default function CreateTeamPreviewPage() {
           credit: Number(item.credit || 0),
         }));
 
-        if (isMounted && mapped.length > 0) {
-          setAvailablePlayers(mapped);
+        if (isMounted) {
+          if (mapped.length > 0) {
+            setAvailablePlayers(mapped);
+            return;
+          }
+          if (!isDev) {
+            setAvailablePlayers([]);
+            setSaveError("No players available for this match.");
+          }
         }
       } catch {
-        // Keep fallback static players when API load fails.
+        if (!isDev && isMounted) {
+          setAvailablePlayers([]);
+          setSaveError("Failed to load players. Please try again.");
+        }
       }
     };
 
@@ -134,10 +173,12 @@ export default function CreateTeamPreviewPage() {
     return () => {
       isMounted = false;
     };
-  }, [matchMeta.team1, matchMeta.team2]);
+  }, [hasRequiredMatchMeta, isDev, matchMeta.team1, matchMeta.team2]);
 
   const canSave =
     isValidTeamComposition(selected, availablePlayers) &&
+    hasRequiredMatchMeta &&
+    availablePlayers.length > 0 &&
     teamName.trim().length > 0 &&
     Boolean(captainId) &&
     Boolean(viceCaptainId) &&
@@ -152,6 +193,25 @@ export default function CreateTeamPreviewPage() {
     const match = value.match(/^(\d+)\//);
     return match ? Number(match[1]) : 0;
   };
+
+  const calculatePerformancePoints = (entry: {
+    runs?: number;
+    wickets?: number;
+    fours?: number;
+    sixes?: number;
+    maidens?: number;
+    catches?: number;
+    stumpings?: number;
+    runOuts?: number;
+  }) =>
+    (Number(entry.runs) || 0) +
+    (Number(entry.fours) || 0) +
+    (Number(entry.sixes) || 0) * 2 +
+    (Number(entry.wickets) || 0) * 25 +
+    (Number(entry.maidens) || 0) * 12 +
+    (Number(entry.catches) || 0) * 8 +
+    (Number(entry.stumpings) || 0) * 12 +
+    (Number(entry.runOuts) || 0) * 6;
 
   const arePointMapsEqual = (
     left: Record<string, number>,
@@ -195,11 +255,25 @@ export default function CreateTeamPreviewPage() {
     }
 
     const scorecard = payload?.data?.scorecard;
+    const playerPerformances = Array.isArray(scorecard?.playerPerformances)
+      ? scorecard.playerPerformances
+      : [];
     const topBatters = Array.isArray(scorecard?.topBatters) ? scorecard.topBatters : [];
     const topBowlers = Array.isArray(scorecard?.topBowlers) ? scorecard.topBowlers : [];
     const selectedNames = new Set(selectedPlayers.map((player) => player.name));
 
     const nextPoints = { ...basePoints };
+    for (const entry of playerPerformances) {
+      const playerName = String(entry?.playerName || "");
+      if (selectedNames.has(playerName)) {
+        nextPoints[playerName] = calculatePerformancePoints(entry);
+      }
+    }
+
+    if (playerPerformances.length) {
+      return nextPoints;
+    }
+
     for (const entry of topBatters) {
       const playerName = String(entry?.playerName || "");
       if (selectedNames.has(playerName)) {
@@ -245,83 +319,110 @@ export default function CreateTeamPreviewPage() {
     }
 
     setIsSaving(true);
+    setSaveError(null);
     try {
-      const pointsByPlayer = await fetchSelectedPlayerPoints();
-      const points = selectedPlayers.reduce((sum, player) => {
-        const base = pointsByPlayer[player.name] || 0;
-        if (player.id === captainId) return sum + base * 2;
-        if (player.id === viceCaptainId) return sum + base * 1.5;
-        return sum + base;
-      }, 0);
-      const existingRaw = localStorage.getItem(SAVED_TEAMS_STORAGE_KEY);
-      const existingTeams: SavedTeam[] = existingRaw ? (JSON.parse(existingRaw) as SavedTeam[]) : [];
+      const teamId = editingTeamId ?? Date.now();
+      if (!hasRequiredMatchMeta) {
+        setSaveError("Match id is required to save team.");
+        return;
+      }
 
-      const savedTeam: SavedTeam = {
-        id: editingTeamId ?? Date.now(),
-        matchId: matchMeta.matchId || undefined,
+      const submitResult = await submitContestEntryAction({
+        matchId: matchMeta.matchId,
+        teamId: String(teamId),
+        teamName,
         captainId,
         viceCaptainId,
-        league: matchMeta.league,
-        date: matchMeta.date,
-        time: matchMeta.time,
-        team1: matchMeta.team1,
-        team2: matchMeta.team2,
-        teamName,
-        points,
         playerIds: selected,
-      };
+      });
 
-      const nextTeams =
-        editingTeamId && existingTeams.some((team) => team.id === editingTeamId)
-          ? existingTeams.map((team) => (team.id === editingTeamId ? savedTeam : team))
-          : [savedTeam, ...existingTeams];
+      if (!submitResult.success) {
+        setSaveError(submitResult.message || "Failed to submit contest entry");
+        return;
+      }
 
-      localStorage.setItem(SAVED_TEAMS_STORAGE_KEY, JSON.stringify(nextTeams));
+      const nextBalance = (submitResult.data as { walletSummary?: { balance?: number } })
+        ?.walletSummary?.balance;
+      if (typeof nextBalance === "number" && user) {
+        setUser({
+          ...user,
+          balance: nextBalance,
+        });
+      }
+
       router.push("/dashboard?tab=myteams");
     } finally {
       setIsSaving(false);
     }
   };
 
+  const deleteTeam = async () => {
+    if (!isReadonly || !hasRequiredMatchMeta) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setSaveError(null);
+    try {
+      const result = await deleteContestEntryAction(matchMeta.matchId);
+      if (!result.success) {
+        setSaveError(result.message || "Failed to delete team");
+        return;
+      }
+
+      setIsDeleteModalOpen(false);
+      router.push("/dashboard?tab=myteams");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 font-['Poppins'] flex">
+    <div className={`min-h-screen font-['Poppins'] flex transition-colors ${isDark ? "bg-slate-950" : "bg-gray-50"}`}>
       <Sidebar />
 
       <main className="flex-1 p-6 lg:p-8 xl:p-10 overflow-y-auto">
         <div className="max-w-[1100px] mx-auto">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-gray-400 font-semibold mb-2">Team Builder</p>
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">{teamName}</h1>
-              <p className="text-gray-500 mt-1">
+              <p className={`text-xs uppercase tracking-[0.22em] font-semibold mb-2 ${isDark ? "text-slate-400" : "text-gray-400"}`}>Team Builder</p>
+              <h1 className={`text-3xl md:text-4xl font-bold ${isDark ? "text-slate-100" : "text-gray-900"}`}>{teamName}</h1>
+              <p className={`mt-1 ${isDark ? "text-slate-300" : "text-gray-500"}`}>
                 {matchMeta.team1} vs {matchMeta.team2}, {matchMeta.date}
               </p>
             </div>
 
-            <Link
-              href={
-                isReadonly
-                  ? "/dashboard?tab=myteams"
-                  : `/dashboard/create-team?selected=${encodeSelectedIds(selected)}&teamName=${encodeURIComponent(teamName)}${editingTeamId ? `&teamId=${editingTeamId}` : ""}&captainId=${encodeURIComponent(captainId)}&viceCaptainId=${encodeURIComponent(viceCaptainId)}&matchId=${encodeURIComponent(matchMeta.matchId)}&league=${encodeURIComponent(matchMeta.league)}&date=${encodeURIComponent(matchMeta.date)}&time=${encodeURIComponent(matchMeta.time)}&team1=${encodeURIComponent(matchMeta.team1)}&team2=${encodeURIComponent(matchMeta.team2)}`
-              }
-              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
-            >
-              <ArrowLeft size={16} />
-              {isReadonly ? "Back to My Teams" : "Edit Team"}
-            </Link>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Link
+                href={
+                  isReadonly
+                    ? "/dashboard?tab=myteams"
+                    : `/dashboard/create-team?selected=${encodeSelectedIds(selected)}&teamName=${encodeURIComponent(teamName)}${editingTeamId ? `&teamId=${editingTeamId}` : ""}&captainId=${encodeURIComponent(captainId)}&viceCaptainId=${encodeURIComponent(viceCaptainId)}&matchId=${encodeURIComponent(matchMeta.matchId)}&league=${encodeURIComponent(matchMeta.league)}&date=${encodeURIComponent(matchMeta.date)}&time=${encodeURIComponent(matchMeta.time)}&team1=${encodeURIComponent(matchMeta.team1)}&team2=${encodeURIComponent(matchMeta.team2)}`
+                }
+                className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition ${
+                  isDark
+                    ? "border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                    : "border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <ArrowLeft size={16} />
+                {isReadonly ? "Back to My Teams" : "Edit Team"}
+              </Link>
+            </div>
           </div>
 
-          <section className="bg-white border border-gray-200 rounded-3xl p-5 md:p-6 xl:p-7 shadow-sm">
-            <div className="rounded-2xl bg-gray-100 p-4 md:p-5 flex flex-wrap items-center gap-3 mb-5">
+          <section className={`border rounded-3xl p-5 md:p-6 xl:p-7 shadow-sm transition-colors ${isDark ? "bg-slate-900 border-slate-700" : "bg-white border-gray-200"}`}>
+            <div className={`rounded-2xl p-4 md:p-5 flex flex-wrap items-center gap-3 mb-5 ${isDark ? "bg-slate-800/80" : "bg-gray-100"}`}>
               <div className="inline-flex items-center gap-2 mr-1">
-                <Users size={18} className="text-gray-700" />
-                <p className="text-lg font-semibold text-gray-900">{selected.length}/11 Players</p>
+                <Users size={18} className={isDark ? "text-slate-100" : "text-gray-700"} />
+                <p className={`text-lg font-semibold ${isDark ? "text-slate-100" : "text-gray-900"}`}>{selected.length}/11 Players</p>
               </div>
 
               {(Object.keys(roleRules) as Role[]).map((role) => (
                 <span
                   key={role}
-                  className="rounded-full border border-gray-300 bg-white px-4 py-1.5 text-xs font-semibold text-gray-700"
+                  className={`rounded-full border px-4 py-1.5 text-xs font-semibold ${isDark ? "border-slate-600 bg-slate-900 text-slate-200" : "border-gray-300 bg-white text-gray-700"}`}
                 >
                   {role}:{roleCounts[role]} ({roleRules[role].min}-{roleRules[role].max})
                 </span>
@@ -330,15 +431,15 @@ export default function CreateTeamPreviewPage() {
 
             {!isReadonly ? (
               <div className="mb-5 grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-                  <label htmlFor="captainId" className="block text-xs font-semibold text-gray-500 mb-2">
+                <div className={`rounded-xl border px-4 py-3 ${isDark ? "border-slate-700 bg-slate-900" : "border-gray-200 bg-white"}`}>
+                  <label htmlFor="captainId" className={`block text-xs font-semibold mb-2 ${isDark ? "text-slate-300" : "text-gray-500"}`}>
                     Captain (2x)
                   </label>
                   <select
                     id="captainId"
                     value={captainId}
                     onChange={(event) => setCaptainId(event.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-300"
+                    className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 ${isDark ? "border-slate-600 bg-slate-800 text-slate-100" : "border-gray-300 text-gray-900"}`}
                   >
                     <option value="">Select captain</option>
                     {selectedPlayers.map((player) => (
@@ -348,15 +449,15 @@ export default function CreateTeamPreviewPage() {
                     ))}
                   </select>
                 </div>
-                <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-                  <label htmlFor="viceCaptainId" className="block text-xs font-semibold text-gray-500 mb-2">
+                <div className={`rounded-xl border px-4 py-3 ${isDark ? "border-slate-700 bg-slate-900" : "border-gray-200 bg-white"}`}>
+                  <label htmlFor="viceCaptainId" className={`block text-xs font-semibold mb-2 ${isDark ? "text-slate-300" : "text-gray-500"}`}>
                     Vice Captain (1.5x)
                   </label>
                   <select
                     id="viceCaptainId"
                     value={viceCaptainId}
                     onChange={(event) => setViceCaptainId(event.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-300"
+                    className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 ${isDark ? "border-slate-600 bg-slate-800 text-slate-100" : "border-gray-300 text-gray-900"}`}
                   >
                     <option value="">Select vice captain</option>
                     {selectedPlayers.map((player) => (
@@ -366,6 +467,12 @@ export default function CreateTeamPreviewPage() {
                     ))}
                   </select>
                 </div>
+              </div>
+            ) : null}
+
+            {saveError ? (
+              <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {saveError}
               </div>
             ) : null}
 
@@ -388,7 +495,7 @@ export default function CreateTeamPreviewPage() {
                 <>
                   <Link
                     href={`/dashboard/create-team?selected=${encodeSelectedIds(selected)}&teamName=${encodeURIComponent(teamName)}${editingTeamId ? `&teamId=${editingTeamId}` : ""}&captainId=${encodeURIComponent(captainId)}&viceCaptainId=${encodeURIComponent(viceCaptainId)}&matchId=${encodeURIComponent(matchMeta.matchId)}&league=${encodeURIComponent(matchMeta.league)}&date=${encodeURIComponent(matchMeta.date)}&time=${encodeURIComponent(matchMeta.time)}&team1=${encodeURIComponent(matchMeta.team1)}&team2=${encodeURIComponent(matchMeta.team2)}`}
-                    className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-6 py-3.5 text-lg font-semibold text-gray-700 hover:bg-gray-50 transition"
+                    className={`inline-flex items-center justify-center rounded-xl border px-6 py-3.5 text-lg font-semibold transition ${isDark ? "border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"}`}
                   >
                     Edit Team
                   </Link>
@@ -400,11 +507,39 @@ export default function CreateTeamPreviewPage() {
                   {isSaving ? "Saving..." : "Save Team"}
                 </button>
                 </>
-              ) : null}
+              ) : (
+                <>
+                  <Link
+                    href="/dashboard?tab=myteams"
+                    className={`inline-flex items-center justify-center rounded-xl border px-6 py-3.5 text-lg font-semibold transition ${isDark ? "border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"}`}
+                  >
+                    Back to My Teams
+                  </Link>
+                  <button
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    disabled={isDeleting}
+                    className="rounded-xl bg-red-500 hover:bg-red-600 disabled:bg-red-300 px-6 py-3.5 text-lg font-semibold text-white transition"
+                  >
+                    {isDeleting ? "Deleting..." : "Delete Team"}
+                  </button>
+                </>
+              )}
             </div>
           </section>
         </div>
       </main>
+
+      <DeleteTeamModal
+        isOpen={isDeleteModalOpen}
+        teamName={teamName}
+        onClose={() => {
+          if (!isDeleting) {
+            setIsDeleteModalOpen(false);
+          }
+        }}
+        onConfirm={deleteTeam}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }
