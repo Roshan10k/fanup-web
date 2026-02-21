@@ -9,7 +9,6 @@ import {
   type ComponentType,
 } from "react";
 import {
-  Bell,
   ArrowDown,
   ArrowUp,
   Clock3,
@@ -22,6 +21,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Sidebar from "../_components/Sidebar";
+import ThemeToggle from "../_components/ThemeToggle";
+import { useThemeMode } from "../_components/useThemeMode";
 import {
   claimDailyBonusAction,
   getWalletSummaryAction,
@@ -98,6 +99,7 @@ const formatCredits = (value: number) =>
 
 export default function WalletPage() {
   const { user, loading, setUser } = useAuth();
+  const { isDark } = useThemeMode();
   const [taskMessage, setTaskMessage] = useState<string | null>(null);
   const [walletLoading, setWalletLoading] = useState(true);
   const [walletError, setWalletError] = useState<string | null>(null);
@@ -191,36 +193,33 @@ export default function WalletPage() {
   };
 
   return (
-    <div className="min-h-screen flex font-['Poppins'] bg-gray-50">
+    <div className={`min-h-screen flex font-['Poppins'] ${isDark ? "bg-slate-950 text-slate-100" : "bg-gray-50"}`}>
       <Sidebar />
 
-      <main className="flex-1 bg-white">
-        <header className="border-b border-gray-200 px-8 py-6 flex items-center justify-between">
+      <main className={`flex-1 ${isDark ? "bg-slate-900" : "bg-white"}`}>
+        <header className={`px-8 py-6 flex items-center justify-between ${isDark ? "border-b border-slate-700" : "border-b border-gray-200"}`}>
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">My Wallet</h2>
-            <p className="text-sm text-gray-700 mt-2">Manage your credits, {fullName.split(" ")[0]}</p>
+            <h2 className={`text-3xl font-bold ${isDark ? "text-slate-100" : "text-gray-900"}`}>My Wallet</h2>
+            <p className={`text-sm mt-2 ${isDark ? "text-slate-300" : "text-gray-700"}`}>Manage your credits, {fullName.split(" ")[0]}</p>
           </div>
-          <button className="relative p-3 hover:bg-gray-100 rounded-full" aria-label="Notifications">
-            <Bell size={24} className="text-gray-600" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
+          <ThemeToggle />
         </header>
 
         <div className="p-8 max-w-7xl">
           {walletError ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 mb-6 text-sm">
+            <div className={`rounded-2xl border px-4 py-3 mb-6 text-sm ${isDark ? "border-red-400/30 bg-red-500/10 text-red-200" : "border-red-200 bg-red-50 text-red-700"}`}>
               {walletError}
             </div>
           ) : null}
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <section className="xl:col-span-2 bg-gradient-to-br from-yellow-100 via-orange-100 to-red-100 rounded-3xl p-8 border border-orange-200">
-              <div className="flex items-center gap-2 text-gray-900">
+            <section className={`xl:col-span-2 rounded-3xl p-8 border ${isDark ? "border-slate-700 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700" : "bg-gradient-to-br from-yellow-100 via-orange-100 to-red-100 border-orange-200"}`}>
+              <div className={`flex items-center gap-2 ${isDark ? "text-slate-100" : "text-gray-900"}`}>
                 <Wallet className="w-5 h-5 text-orange-600" />
                 <p className="text-base font-semibold">Total Credits</p>
               </div>
 
-              <p className="text-5xl md:text-6xl font-bold text-gray-900 mt-3">{formatCredits(balance)}</p>
+              <p className={`text-5xl md:text-6xl font-bold mt-3 ${isDark ? "text-slate-100" : "text-gray-900"}`}>{formatCredits(balance)}</p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-8">
                 {loading || walletLoading ? (
@@ -238,15 +237,15 @@ export default function WalletPage() {
                 )}
               </div>
 
-              <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/80 border border-white text-sm text-gray-700">
+              <div className={`mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm ${isDark ? "bg-slate-900 border-slate-600 text-slate-300" : "bg-white/80 border-white text-gray-700"}`}>
                 <Sparkles className="w-4 h-4 text-orange-500" />
                 Last updated from server wallet data
               </div>
             </section>
 
-            <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h3 className="text-xl font-bold text-gray-900">Earn More Credits</h3>
-              <p className="text-sm text-gray-600 mt-1">Claim daily bonus and win contests.</p>
+            <section className={`rounded-3xl border p-6 shadow-sm ${isDark ? "border-slate-700 bg-slate-900" : "border-gray-200 bg-white"}`}>
+              <h3 className={`text-xl font-bold ${isDark ? "text-slate-100" : "text-gray-900"}`}>Earn More Credits</h3>
+              <p className={`text-sm mt-1 ${isDark ? "text-slate-300" : "text-gray-600"}`}>Claim daily bonus and win contests.</p>
 
               <div className="mt-5 space-y-3">
                 {earnTasks.map((task) => (
@@ -260,9 +259,9 @@ export default function WalletPage() {
               </div>
             </section>
 
-            <section className="xl:col-span-3 rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-              <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-900">Recent Transactions</h3>
+            <section className={`xl:col-span-3 rounded-3xl border shadow-sm overflow-hidden ${isDark ? "border-slate-700 bg-slate-900" : "border-gray-200 bg-white"}`}>
+              <div className={`px-6 py-5 flex items-center justify-between ${isDark ? "border-b border-slate-700" : "border-b border-gray-200"}`}>
+                <h3 className={`text-xl font-bold ${isDark ? "text-slate-100" : "text-gray-900"}`}>Recent Transactions</h3>
                 <button
                   onClick={() => void loadWallet()}
                   className="text-sm font-semibold text-red-500 hover:text-red-600 transition"
@@ -272,7 +271,7 @@ export default function WalletPage() {
               </div>
 
               {taskMessage ? (
-                <div className="mx-6 mt-5 px-4 py-3 rounded-xl bg-orange-50 border border-orange-200 text-sm text-orange-700">
+                <div className={`mx-6 mt-5 px-4 py-3 rounded-xl border text-sm ${isDark ? "bg-orange-500/10 border-orange-400/35 text-orange-200" : "bg-orange-50 border-orange-200 text-orange-700"}`}>
                   {taskMessage}
                 </div>
               ) : null}
@@ -288,7 +287,7 @@ export default function WalletPage() {
                 ) : transactions.length > 0 ? (
                   transactions.map((item) => <TransactionRow key={item._id} item={item} />)
                 ) : (
-                  <div className="rounded-xl border border-gray-200 px-4 py-6 text-center text-sm text-gray-600">
+                  <div className={`rounded-xl border px-4 py-6 text-center text-sm ${isDark ? "border-slate-700 text-slate-300" : "border-gray-200 text-gray-600"}`}>
                     No transactions yet.
                   </div>
                 )}
@@ -302,23 +301,26 @@ export default function WalletPage() {
 }
 
 function BalanceStat({ label, value }: { label: string; value: string }) {
+  const { isDark } = useThemeMode();
   return (
-    <div className="rounded-2xl bg-white/80 border border-white p-4">
-      <p className="text-sm text-gray-700">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+    <div className={`rounded-2xl border p-4 ${isDark ? "bg-slate-900 border-slate-600" : "bg-white/80 border-white"}`}>
+      <p className={`text-sm ${isDark ? "text-slate-300" : "text-gray-700"}`}>{label}</p>
+      <p className={`text-2xl font-bold mt-1 ${isDark ? "text-slate-100" : "text-gray-900"}`}>{value}</p>
     </div>
   );
 }
 
 function BalanceStatSkeleton() {
-  return <div className="h-24 rounded-2xl bg-white/70 border border-white animate-pulse" />;
+  const { isDark } = useThemeMode();
+  return <div className={`h-24 rounded-2xl border animate-pulse ${isDark ? "bg-slate-800 border-slate-700" : "bg-white/70 border-white"}`} />;
 }
 
 function TransactionRow({ item }: { item: WalletTransaction }) {
+  const { isDark } = useThemeMode();
   const isCredit = item.type === "credit";
 
   return (
-    <div className="p-4 bg-white rounded-2xl border border-gray-100 flex items-center gap-4 hover:border-gray-200 transition">
+    <div className={`p-4 rounded-2xl border flex items-center gap-4 transition ${isDark ? "bg-slate-900 border-slate-700 hover:border-slate-600" : "bg-white border-gray-100 hover:border-gray-200"}`}>
       <div
         className={`w-11 h-11 rounded-xl flex items-center justify-center ${
           isCredit ? "bg-green-50" : "bg-red-50"
@@ -334,8 +336,8 @@ function TransactionRow({ item }: { item: WalletTransaction }) {
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-gray-900 truncate">{item.title}</p>
-        <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
+        <p className={`font-semibold truncate ${isDark ? "text-slate-100" : "text-gray-900"}`}>{item.title}</p>
+        <p className={`text-sm mt-1 flex items-center gap-1 ${isDark ? "text-slate-400" : "text-gray-500"}`}>
           <Clock3 className="w-3.5 h-3.5" />
           {new Intl.DateTimeFormat("en-CA", {
             year: "numeric",
@@ -367,14 +369,15 @@ function EarnTaskCard({
   onSelect: () => void;
   loading?: boolean;
 }) {
+  const { isDark } = useThemeMode();
   const Icon = task.icon;
 
   return (
     <button
       onClick={onSelect}
       disabled={loading}
-      className="w-full text-left p-4 rounded-xl border transition hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
-      style={{ borderColor: `${task.color}40`, backgroundColor: `${task.color}10` }}
+      className={`w-full text-left p-4 rounded-xl border transition hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-70 ${isDark ? "bg-slate-900" : ""}`}
+      style={{ borderColor: `${task.color}40`, backgroundColor: isDark ? `${task.color}15` : `${task.color}10` }}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-start gap-3">
@@ -385,8 +388,8 @@ function EarnTaskCard({
             <Icon className="w-5 h-5" style={{ color: task.color }} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900">{task.title}</p>
-            <p className="text-xs text-gray-600 mt-0.5">{task.subtitle}</p>
+            <p className={`text-sm font-semibold ${isDark ? "text-slate-100" : "text-gray-900"}`}>{task.title}</p>
+            <p className={`text-xs mt-0.5 ${isDark ? "text-slate-300" : "text-gray-600"}`}>{task.subtitle}</p>
           </div>
         </div>
         <p className="text-sm font-bold" style={{ color: task.color }}>
@@ -398,14 +401,15 @@ function EarnTaskCard({
 }
 
 function TransactionRowSkeleton() {
+  const { isDark } = useThemeMode();
   return (
-    <div className="p-4 bg-white rounded-2xl border border-gray-100 flex items-center gap-4">
-      <div className="w-11 h-11 rounded-xl bg-gray-100 animate-pulse" />
+    <div className={`p-4 rounded-2xl border flex items-center gap-4 ${isDark ? "bg-slate-900 border-slate-700" : "bg-white border-gray-100"}`}>
+      <div className={`w-11 h-11 rounded-xl animate-pulse ${isDark ? "bg-slate-700" : "bg-gray-100"}`} />
       <div className="flex-1 min-w-0 space-y-2">
-        <div className="h-4 w-2/3 rounded bg-gray-200 animate-pulse" />
-        <div className="h-3 w-1/3 rounded bg-gray-200 animate-pulse" />
+        <div className={`h-4 w-2/3 rounded animate-pulse ${isDark ? "bg-slate-700" : "bg-gray-200"}`} />
+        <div className={`h-3 w-1/3 rounded animate-pulse ${isDark ? "bg-slate-700" : "bg-gray-200"}`} />
       </div>
-      <div className="h-4 w-16 rounded bg-gray-200 animate-pulse" />
+      <div className={`h-4 w-16 rounded animate-pulse ${isDark ? "bg-slate-700" : "bg-gray-200"}`} />
     </div>
   );
 }
