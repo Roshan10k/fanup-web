@@ -20,6 +20,7 @@ export const API = {
         CONTESTS: '/api/leaderboard/contests',
         MY_ENTRIES: '/api/leaderboard/my-entries',
         CONTEST_BY_MATCH: (matchId: string) => `/api/leaderboard/contests/${matchId}`,
+        LIVE_BY_MATCH: (matchId: string) => `/api/leaderboard/contests/${matchId}/live`,
         SUBMIT_ENTRY: (matchId: string) => `/api/leaderboard/contests/${matchId}/entry`,
     },
 }
