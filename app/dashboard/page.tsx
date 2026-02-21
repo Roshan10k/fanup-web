@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Bell, CalendarDays, Plus, Target, Trophy, Users } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { CalendarDays, Plus, Target, Trophy, Users } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Sidebar from "./_components/Sidebar";
+import ThemeToggle from "./_components/ThemeToggle";
+import { useThemeMode } from "./_components/useThemeMode";
 import MatchCard from "./_components/MatchCard";
 import TeamCard from "./_components/TeamCard";
-import { encodeSelectedIds, SAVED_TEAMS_STORAGE_KEY, type SavedTeam } from "./create-team/teamBuilder";
+import { encodeSelectedIds } from "./create-team/teamBuilder";
+import { getMyContestEntriesAction } from "@/app/lib/action/leaderboard_action";
 
 interface ApiMatch {
   _id: string;
@@ -19,12 +22,34 @@ interface ApiMatch {
   teamB?: { shortName?: string };
 }
 
+interface EntryMatch {
+  id: string;
+  league?: string;
+  startTime?: string;
+  status?: string;
+  teamA?: { shortName?: string };
+  teamB?: { shortName?: string };
+}
+
+interface ContestEntry {
+  matchId: string;
+  entryId: string;
+  teamId: string;
+  teamName: string;
+  captainId: string;
+  viceCaptainId: string;
+  playerIds: string[];
+  points: number;
+  match: EntryMatch | null;
+}
+
 export default function DashboardPage() {
   const { user, loading } = useAuth();
+  const { isDark } = useThemeMode();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<"upcoming" | "myteams">("upcoming");
-  const [completedMatches, setCompletedMatches] = useState<
+  const [availableMatches, setAvailableMatches] = useState<
     Array<{
       id: string;
       league: string;
@@ -34,27 +59,12 @@ export default function DashboardPage() {
       team2: string;
       isLive: boolean;
       createHref: string;
+      createLabel: string;
     }>
   >([]);
+  const [myEntries, setMyEntries] = useState<ContestEntry[]>([]);
   const [matchesLoading, setMatchesLoading] = useState(true);
   const [matchesError, setMatchesError] = useState<string | null>(null);
-  const [savedTeams] = useState<SavedTeam[]>(() => {
-    if (typeof window === "undefined") {
-      return [];
-    }
-
-    try {
-      const raw = localStorage.getItem(SAVED_TEAMS_STORAGE_KEY);
-      if (!raw) {
-        return [];
-      }
-
-      const parsed = JSON.parse(raw) as SavedTeam[];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  });
 
   const fullName = user?.fullName || "User";
   const balance = user?.balance ?? 0;
@@ -62,7 +72,7 @@ export default function DashboardPage() {
   useEffect(() => {
     let isMounted = true;
 
-    const loadCompletedMatches = async () => {
+    const loadData = async () => {
       setMatchesLoading(true);
       setMatchesError(null);
 
@@ -71,20 +81,29 @@ export default function DashboardPage() {
           process.env.NEXT_PUBLIC_API_URL ||
           process.env.NEXT_PUBLIC_API_BASE_URL ||
           "http://localhost:3001";
-        const response = await fetch(
-          `${API_BASE_URL}/api/matches/completed?page=1&size=12`,
-          {
-            cache: "no-store",
-          }
-        );
 
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok || !payload?.success) {
-          throw new Error(payload?.message || "Failed to load matches");
+        const [matchesResponse, entriesResult] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/matches?page=1&size=12&status=upcoming,live`, {
+            cache: "no-store",
+          }),
+          getMyContestEntriesAction(),
+        ]);
+
+        const matchesPayload = await matchesResponse.json().catch(() => ({}));
+        if (!matchesResponse.ok || !matchesPayload?.success) {
+          throw new Error(matchesPayload?.message || "Failed to load matches");
         }
 
-        const rows: ApiMatch[] = Array.isArray(payload?.data) ? payload.data : [];
+        if (!entriesResult.success) {
+          throw new Error(entriesResult.message || "Failed to load entries");
+        }
+
+        const entriesRows = (entriesResult.data || []) as ContestEntry[];
+        const entryByMatch = new Map(entriesRows.map((entry) => [entry.matchId, entry]));
+
+        const rows: ApiMatch[] = Array.isArray(matchesPayload?.data) ? matchesPayload.data : [];
         const mapped = rows.map((match) => {
+          const matchId = String(match._id);
           const startTime = new Date(match.startTime);
           const league = String(match.league || "League");
           const date = startTime.toLocaleDateString("en-US", {
@@ -98,25 +117,33 @@ export default function DashboardPage() {
           });
           const team1 = String(match.teamA?.shortName || "T1");
           const team2 = String(match.teamB?.shortName || "T2");
+          const existingEntry = entryByMatch.get(matchId);
+
+          const createHref = existingEntry
+            ? `/dashboard/create-team?selected=${encodeSelectedIds(existingEntry.playerIds || [])}&teamName=${encodeURIComponent(existingEntry.teamName || "My Team")}&teamId=${encodeURIComponent(existingEntry.teamId || "")}&captainId=${encodeURIComponent(existingEntry.captainId || "")}&viceCaptainId=${encodeURIComponent(existingEntry.viceCaptainId || "")}&matchId=${encodeURIComponent(matchId)}&league=${encodeURIComponent(league)}&date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}&team1=${encodeURIComponent(team1)}&team2=${encodeURIComponent(team2)}`
+            : `/dashboard/create-team?matchId=${encodeURIComponent(matchId)}&league=${encodeURIComponent(league)}&date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}&team1=${encodeURIComponent(team1)}&team2=${encodeURIComponent(team2)}`;
+
           return {
-            id: String(match._id),
+            id: matchId,
             league,
             date,
             time,
             team1,
             team2,
             isLive: match.status === "live",
-            createHref: `/dashboard/create-team?matchId=${encodeURIComponent(String(match._id))}&league=${encodeURIComponent(league)}&date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}&team1=${encodeURIComponent(team1)}&team2=${encodeURIComponent(team2)}`,
+            createHref,
+            createLabel: existingEntry ? "Edit Team" : "Create Team",
           };
         });
 
         if (isMounted) {
-          setCompletedMatches(mapped);
+          setAvailableMatches(mapped);
+          setMyEntries(entriesRows);
         }
       } catch (error) {
         if (isMounted) {
           setMatchesError(
-            error instanceof Error ? error.message : "Failed to load matches"
+            error instanceof Error ? error.message : "Failed to load dashboard data"
           );
         }
       } finally {
@@ -126,7 +153,7 @@ export default function DashboardPage() {
       }
     };
 
-    void loadCompletedMatches();
+    void loadData();
     return () => {
       isMounted = false;
     };
@@ -135,59 +162,94 @@ export default function DashboardPage() {
   const tabFromQuery = searchParams.get("tab");
   const resolvedActiveTab =
     tabFromQuery === "myteams" || tabFromQuery === "upcoming" ? tabFromQuery : activeTab;
-  const allMyTeams = savedTeams;
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-lg">Loading...</div>;
-  }
+  const myTeams = useMemo(
+    () =>
+      myEntries
+        .filter((entry) => entry.match)
+        .map((entry) => {
+          const match = entry.match as EntryMatch;
+          const startTime = new Date(String(match.startTime || new Date().toISOString()));
+          const date = startTime.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "2-digit",
+          });
+          const time = startTime.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          });
+          return {
+            id: entry.teamId,
+            matchId: entry.matchId,
+            league: String(match.league || "League"),
+            date,
+            time,
+            team1: String(match.teamA?.shortName || "T1"),
+            team2: String(match.teamB?.shortName || "T2"),
+            teamName: entry.teamName,
+            points: Number(entry.points || 0),
+            playerIds: entry.playerIds || [],
+            captainId: entry.captainId || "",
+            viceCaptainId: entry.viceCaptainId || "",
+          };
+        }),
+    [myEntries]
+  );
 
   return (
-    <div className="min-h-screen flex font-['Poppins'] bg-gray-50">
+    <div className={`min-h-screen flex font-['Poppins'] ${isDark ? "bg-slate-950 text-slate-100" : "bg-gray-50"}`}>
       <Sidebar />
 
-      <main className="flex-1 bg-white">
-        <header className="border-b border-gray-200 px-8 py-6 flex items-center justify-between">
+      <main className={`flex-1 ${isDark ? "bg-slate-900" : "bg-white"}`}>
+        <header className={`px-8 py-6 flex items-center justify-between ${isDark ? "border-b border-slate-700" : "border-b border-gray-200"}`}>
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">Dashboard</h2>
-            <p className="text-sm text-gray-700 mt-2">Welcome back {fullName.split(" ")[0]}! Ready to build today&apos;s winning team?</p>
+            <h2 className={`text-3xl font-bold ${isDark ? "text-slate-100" : "text-gray-900"}`}>Dashboard</h2>
+            <p className={`text-sm mt-2 ${isDark ? "text-slate-300" : "text-gray-700"}`}>Welcome back {fullName.split(" ")[0]}! Ready to build today&apos;s winning team?</p>
           </div>
-          <button className="relative p-3 hover:bg-gray-100 rounded-full" aria-label="Notifications">
-            <Bell size={24} className="text-gray-600" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
+          <ThemeToggle />
         </header>
 
         <div className="p-8 max-w-7xl space-y-7">
           <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <div className="xl:col-span-2 rounded-3xl border border-orange-200 bg-gradient-to-br from-yellow-100 via-orange-100 to-red-100 p-8">
-              <p className="text-sm font-semibold text-gray-700">Available Credit</p>
-              <p className="text-6xl font-bold text-gray-900 mt-2">{balance.toFixed(1)}</p>
+            <div className={`xl:col-span-2 rounded-3xl border p-8 ${isDark ? "border-slate-700 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700" : "border-orange-200 bg-gradient-to-br from-yellow-100 via-orange-100 to-red-100"}`}>
+              <p className={`text-sm font-semibold ${isDark ? "text-slate-300" : "text-gray-700"}`}>Available Credit</p>
+              <p className={`text-6xl font-bold mt-2 ${isDark ? "text-slate-100" : "text-gray-900"}`}>{balance.toFixed(1)}</p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
-                <button className="bg-white text-red-500 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition shadow-sm inline-flex items-center gap-2">
+                <button className={`px-6 py-3 rounded-xl font-semibold transition shadow-sm inline-flex items-center gap-2 ${isDark ? "bg-slate-900 text-red-300 hover:bg-slate-800 border border-slate-600" : "bg-white text-red-500 hover:bg-gray-50"}`}>
                   <Plus className="w-4 h-4" />
                   Add Credit
                 </button>
                 <Link
                   href="/dashboard/wallet"
-                  className="px-6 py-3 rounded-xl border border-orange-200 bg-white/70 text-gray-700 font-medium hover:bg-white transition"
+                  className={`px-6 py-3 rounded-xl border font-medium transition ${isDark ? "border-slate-600 bg-slate-900/60 text-slate-200 hover:bg-slate-900" : "border-orange-200 bg-white/70 text-gray-700 hover:bg-white"}`}
                 >
                   Open Wallet
                 </Link>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-gray-900">Quick Snapshot</h3>
-              <div className="mt-4 space-y-3">
-                <StatItem icon={<Users className="w-4 h-4 text-blue-500" />} label="My Teams" value={String(allMyTeams.length)} />
-                <StatItem icon={<CalendarDays className="w-4 h-4 text-orange-500" />} label="Matches" value={String(completedMatches.length)} />
-                <StatItem icon={<Target className="w-4 h-4 text-green-500" />} label="Avg Points" value={allMyTeams.length ? String(Math.round(allMyTeams.reduce((acc, team) => acc + team.points, 0) / allMyTeams.length)) : "0"} />
-                <StatItem icon={<Trophy className="w-4 h-4 text-yellow-600" />} label="Best Score" value={allMyTeams.length ? String(Math.max(...allMyTeams.map((team) => team.points))) : "0"} />
-              </div>
+            <div className={`rounded-3xl border p-6 shadow-sm ${isDark ? "border-slate-700 bg-slate-900" : "border-gray-200 bg-white"}`}>
+              <h3 className={`text-lg font-bold ${isDark ? "text-slate-100" : "text-gray-900"}`}>Quick Snapshot</h3>
+              {loading || matchesLoading ? (
+                <div className="mt-4 space-y-3">
+                  <StatItemSkeleton isDark={isDark} />
+                  <StatItemSkeleton isDark={isDark} />
+                  <StatItemSkeleton isDark={isDark} />
+                  <StatItemSkeleton isDark={isDark} />
+                </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  <StatItem isDark={isDark} icon={<Users className="w-4 h-4 text-blue-500" />} label="My Teams" value={String(myTeams.length)} />
+                  <StatItem isDark={isDark} icon={<CalendarDays className="w-4 h-4 text-orange-500" />} label="Matches" value={String(availableMatches.length)} />
+                  <StatItem isDark={isDark} icon={<Target className="w-4 h-4 text-green-500" />} label="Avg Points" value={myTeams.length ? String(Math.round(myTeams.reduce((acc, team) => acc + team.points, 0) / myTeams.length)) : "0"} />
+                  <StatItem isDark={isDark} icon={<Trophy className="w-4 h-4 text-yellow-600" />} label="Best Score" value={myTeams.length ? String(Math.max(...myTeams.map((team) => team.points))) : "0"} />
+                </div>
+              )}
             </div>
           </section>
 
-          <section className="rounded-2xl border border-gray-200 bg-white p-2 inline-flex gap-2">
+          <section className={`rounded-2xl border p-2 inline-flex gap-2 ${isDark ? "border-slate-700 bg-slate-900" : "border-gray-200 bg-white"}`}>
             <button
               onClick={() => {
                 setActiveTab("upcoming");
@@ -196,7 +258,9 @@ export default function DashboardPage() {
               className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition ${
                 resolvedActiveTab === "upcoming"
                   ? "bg-red-500 text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-100"
+                  : isDark
+                    ? "text-slate-300 hover:bg-slate-800"
+                    : "text-gray-600 hover:bg-gray-100"
               }`}
             >
               Upcoming Matches
@@ -209,7 +273,9 @@ export default function DashboardPage() {
               className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition ${
                 resolvedActiveTab === "myteams"
                   ? "bg-red-500 text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-100"
+                  : isDark
+                    ? "text-slate-300 hover:bg-slate-800"
+                    : "text-gray-600 hover:bg-gray-100"
               }`}
             >
               My Teams
@@ -218,25 +284,45 @@ export default function DashboardPage() {
 
           {resolvedActiveTab === "upcoming" ? (
             <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {matchesLoading ? (
-                <div className="col-span-full rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-600">
-                  Loading matches...
-                </div>
+              {loading || matchesLoading ? (
+                <>
+                  <MatchCardSkeleton />
+                  <MatchCardSkeleton />
+                  <MatchCardSkeleton />
+                </>
               ) : matchesError ? (
                 <div className="col-span-full rounded-2xl border border-red-200 bg-red-50 p-8 text-center text-red-700">
                   {matchesError}
                 </div>
-              ) : completedMatches.length > 0 ? (
-                completedMatches.map((match) => <MatchCard key={match.id} {...match} />)
+              ) : availableMatches.length > 0 ? (
+                availableMatches.map((match) => (
+                  <MatchCard
+                    key={match.id}
+                    league={match.league}
+                    date={match.date}
+                    time={match.time}
+                    team1={match.team1}
+                    team2={match.team2}
+                    isLive={match.isLive}
+                    createHref={match.createHref}
+                    createLabel={match.createLabel}
+                  />
+                ))
               ) : (
-                <div className="col-span-full rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-600">
-                  No matches available.
+                <div className={`col-span-full rounded-2xl border p-8 text-center ${isDark ? "border-slate-700 bg-slate-900 text-slate-300" : "border-gray-200 bg-white text-gray-600"}`}>
+                  No upcoming/live matches available.
                 </div>
               )}
             </section>
-          ) : allMyTeams.length > 0 ? (
+          ) : loading || matchesLoading ? (
             <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {allMyTeams.map((team) => (
+              <TeamCardSkeleton />
+              <TeamCardSkeleton />
+              <TeamCardSkeleton />
+            </section>
+          ) : myTeams.length > 0 ? (
+            <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {myTeams.map((team) => (
                 <TeamCard
                   key={team.id}
                   league={team.league}
@@ -246,16 +332,16 @@ export default function DashboardPage() {
                   team2={team.team2}
                   teamName={team.teamName}
                   points={team.points}
-                  viewHref={`/dashboard/create-team/preview?selected=${encodeSelectedIds(team.playerIds)}&teamName=${encodeURIComponent(team.teamName)}&teamId=${team.id}&readonly=1&captainId=${encodeURIComponent(team.captainId || "")}&viceCaptainId=${encodeURIComponent(team.viceCaptainId || "")}&matchId=${encodeURIComponent(team.matchId || "")}&league=${encodeURIComponent(team.league)}&date=${encodeURIComponent(team.date)}&time=${encodeURIComponent(team.time)}&team1=${encodeURIComponent(team.team1)}&team2=${encodeURIComponent(team.team2)}`}
+                  viewHref={`/dashboard/create-team/preview?selected=${encodeSelectedIds(team.playerIds)}&teamName=${encodeURIComponent(team.teamName)}&teamId=${encodeURIComponent(team.id)}&readonly=1&captainId=${encodeURIComponent(team.captainId || "")}&viceCaptainId=${encodeURIComponent(team.viceCaptainId || "")}&matchId=${encodeURIComponent(team.matchId || "")}&league=${encodeURIComponent(team.league)}&date=${encodeURIComponent(team.date)}&time=${encodeURIComponent(team.time)}&team1=${encodeURIComponent(team.team1)}&team2=${encodeURIComponent(team.team2)}`}
                 />
               ))}
             </section>
           ) : (
-            <section className="rounded-3xl border border-dashed border-gray-300 bg-gray-50 p-12 text-center">
-              <p className="text-xl font-bold text-gray-900 mb-2">No Teams Yet</p>
-              <p className="text-sm text-gray-600">Create a team from upcoming matches to start competing.</p>
+            <section className={`rounded-3xl border border-dashed p-12 text-center ${isDark ? "border-slate-600 bg-slate-900" : "border-gray-300 bg-gray-50"}`}>
+              <p className={`text-xl font-bold mb-2 ${isDark ? "text-slate-100" : "text-gray-900"}`}>No Teams Yet</p>
+              <p className={`${isDark ? "text-slate-300" : "text-gray-600"} text-sm`}>Create a team from upcoming matches to start competing.</p>
               <Link
-                href="/dashboard/create-team"
+                href="/dashboard?tab=upcoming"
                 className="mt-5 inline-flex px-5 py-2.5 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition"
               >
                 Create Team
@@ -268,14 +354,34 @@ export default function DashboardPage() {
   );
 }
 
-function StatItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function StatItem({ icon, label, value, isDark }: { icon: ReactNode; label: string; value: string; isDark: boolean }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-gray-200 px-3 py-2.5">
-      <div className="flex items-center gap-2 text-sm text-gray-600">
+    <div className={`flex items-center justify-between rounded-xl border px-4 py-3 ${isDark ? "border-slate-700 bg-slate-800/80" : "border-gray-100 bg-gray-50"}`}>
+      <div className={`flex items-center gap-2 ${isDark ? "text-slate-300" : "text-gray-700"}`}>
         {icon}
-        <span>{label}</span>
+        <span className="text-sm font-medium">{label}</span>
       </div>
-      <span className="text-sm font-bold text-gray-900">{value}</span>
+      <span className={`text-sm font-bold ${isDark ? "text-slate-100" : "text-gray-900"}`}>{value}</span>
     </div>
+  );
+}
+
+function StatItemSkeleton({ isDark }: { isDark: boolean }) {
+  return (
+    <div className={`h-14 rounded-xl border animate-pulse ${isDark ? "border-slate-700 bg-slate-800" : "border-gray-100 bg-gray-100"}`} />
+  );
+}
+
+function MatchCardSkeleton() {
+  const { isDark } = useThemeMode();
+  return (
+    <div className={`h-[320px] rounded-2xl border animate-pulse ${isDark ? "border-slate-700 bg-slate-800" : "border-gray-200 bg-gray-100"}`} />
+  );
+}
+
+function TeamCardSkeleton() {
+  const { isDark } = useThemeMode();
+  return (
+    <div className={`h-[360px] rounded-2xl border animate-pulse ${isDark ? "border-slate-700 bg-slate-800" : "border-gray-200 bg-gray-100"}`} />
   );
 }
