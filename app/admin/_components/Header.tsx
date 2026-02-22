@@ -1,10 +1,22 @@
 "use client";
-import Link from "next/link";
-import Image from "next/image";
+import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import LogoutConfirmModal from "./LogoutConfirmModal";
 
 export default function Header() {
   const { logout, user } = useAuth();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleConfirmLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setLoggingOut(false);
+      setShowLogoutModal(false);
+    }
+  };
 
   return (
     <header
@@ -34,7 +46,7 @@ export default function Header() {
             </span>
 
             <button
-              onClick={logout}
+              onClick={() => setShowLogoutModal(true)}
               className="px-4 py-2 text-sm font-semibold text-white transition"
               style={{
                 backgroundColor: "#FE304C",
@@ -53,6 +65,17 @@ export default function Header() {
 
         </div>
       </nav>
+
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onClose={() => {
+          if (!loggingOut) {
+            setShowLogoutModal(false);
+          }
+        }}
+        onConfirm={handleConfirmLogout}
+        isSubmitting={loggingOut}
+      />
     </header>
   );
 }
