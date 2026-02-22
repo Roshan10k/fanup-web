@@ -7,11 +7,23 @@ import {
   requestPasswordReset,  
   resetPassword 
 } from "../api/auth";
-import { getAuthToken, getUserData, setAuthToken, setUserData } from "../cookie";
+import {
+  clearAuthCookies,
+  getAuthToken,
+  getUserData,
+  setAuthToken,
+  setUserData,
+} from "../cookie";
+import { API } from "../api/endpoints";
 
 const getErrorMessage = (error: unknown, fallback: string) => {
   return error instanceof Error ? error.message : fallback;
 };
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "http://localhost:3001";
 
 export async function handleRegister(formData: unknown) {
   try {
@@ -102,10 +114,6 @@ export const handleUpdateProfile = async (formData: FormData) => {
       };
     }
 
-    const API_BASE_URL =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_API_BASE_URL ||
-      "http://localhost:3001";
     const photo = formData.get("photo");
     const hasPhoto = photo instanceof File && photo.size > 0;
     let response: Response;
@@ -170,6 +178,93 @@ export const handleUpdateProfile = async (formData: FormData) => {
     return {
       success: false,
       message: getErrorMessage(error, "Profile update failed"),
+    };
+  }
+};
+
+export const handleHydrateSession = async () => {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return {
+        success: false,
+        message: "Not authenticated",
+        data: null,
+      };
+    }
+
+    const response = await fetch(`${API_BASE_URL}${API.AUTH.WHOAMI}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload?.success || !payload?.data) {
+      await clearAuthCookies();
+      return {
+        success: false,
+        message: payload?.message || "Session expired. Please login again.",
+        data: null,
+      };
+    }
+
+    await setUserData(payload.data);
+    return {
+      success: true,
+      message: payload?.message || "Session validated",
+      data: payload.data,
+    };
+  } catch (error: unknown) {
+    await clearAuthCookies();
+    return {
+      success: false,
+      message: getErrorMessage(error, "Failed to validate session"),
+      data: null,
+    };
+  }
+};
+
+export const handleGetProfileStats = async () => {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return {
+        success: false,
+        message: "Unauthorized. Please login again.",
+        data: null,
+      };
+    }
+
+    const response = await fetch(`${API_BASE_URL}${API.AUTH.PROFILE_STATS}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload?.success) {
+      return {
+        success: false,
+        message: payload?.message || "Failed to fetch profile stats",
+        data: null,
+      };
+    }
+
+    return {
+      success: true,
+      message: payload?.message || "Profile stats fetched",
+      data: payload?.data || null,
+    };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      message: getErrorMessage(error, "Failed to fetch profile stats"),
+      data: null,
     };
   }
 };

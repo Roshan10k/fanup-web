@@ -1,7 +1,8 @@
 "use client"
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import { clearAuthCookies, getAuthToken, getUserData } from "@/app/lib/cookie";
+import { clearAuthCookies } from "@/app/lib/cookie";
 import { useRouter } from "next/navigation";
+import { handleHydrateSession } from "@/app/lib/action/auth_action";
 
 interface AuthContextProps {
     isAuthenticated: boolean;
@@ -22,10 +23,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const router = useRouter();
     const checkAuth = async () => {
         try {
-            const token = await getAuthToken();
-            const user = await getUserData();
-            setUser(user);
-            setIsAuthenticated(!!token);
+            const result = await handleHydrateSession();
+            if (result.success && result.data) {
+                setUser(result.data);
+                setIsAuthenticated(true);
+                return;
+            }
+
+            setIsAuthenticated(false);
+            setUser(null);
         } catch (err) {
             setIsAuthenticated(false);
             setUser(null);
@@ -62,4 +68,3 @@ export const useAuth = () => {
     }
     return context;
 };
-
