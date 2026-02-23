@@ -21,7 +21,7 @@ const parseJsonSafe = (raw: string): Record<string, unknown> => {
 };
 
 export const getLeaderboardContestsAction = async (
-  status: "upcoming" | "live" | "completed"
+  status: "upcoming" | "completed"
 ) => {
   try {
     const query = new URLSearchParams({ status });
