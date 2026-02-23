@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { handleGetAllUsers, handleGetUserStats } from "@/app/lib/action/admin/user-action";
+import { completeMatchAndSettleAction, getMatchesAction } from "@/app/lib/action/match_action";
 
 type AdminUser = {
   _id: string;
@@ -9,14 +10,25 @@ type AdminUser = {
   createdAt: string;
 };
 
+type AdminMatch = {
+  _id: string;
+  teamA: { shortName: string };
+  teamB: { shortName: string };
+  league: string;
+  startTime: string;
+  status: "upcoming" | "completed" | "abandoned";
+};
+
 export default async function Page() {
-  const [statsResult, usersResult] = await Promise.all([
+  const [statsResult, usersResult, upcomingMatchesResult] = await Promise.all([
     handleGetUserStats(),
     handleGetAllUsers("1", "6"),
+    getMatchesAction("upcoming"),
   ]);
 
   const stats = statsResult.success && statsResult.data ? statsResult.data : null;
   const recentUsers = (usersResult.success ? usersResult.data : []) as AdminUser[];
+  const upcomingMatches = (upcomingMatchesResult.success ? upcomingMatchesResult.data : []) as AdminMatch[];
 
   return (
     <div className="space-y-6">
@@ -106,6 +118,71 @@ export default async function Page() {
                       >
                         Open
                       </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Complete & Settle Matches</h2>
+          <Link
+            href="/admin/matches"
+            className="text-sm font-semibold text-red-600 hover:text-red-700"
+          >
+            View all
+          </Link>
+        </div>
+
+        {upcomingMatches.length === 0 ? (
+          <div className="px-5 py-10 text-sm text-gray-500 text-center">
+            No upcoming matches available for settlement.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px]">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Match</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">League</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Start Time</th>
+                  <th className="px-5 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {upcomingMatches.map((match) => (
+                  <tr key={match._id} className="hover:bg-gray-50">
+                    <td className="px-5 py-3 text-sm font-medium text-gray-900">
+                      {match.teamA.shortName} vs {match.teamB.shortName}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-gray-600">{match.league}</td>
+                    <td className="px-5 py-3 text-sm text-gray-600">
+                      {new Date(match.startTime).toLocaleString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <form
+                        action={async () => {
+                          "use server";
+                          await completeMatchAndSettleAction(match._id);
+                        }}
+                      >
+                        <button
+                          type="submit"
+                          className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition"
+                        >
+                          Complete & Settle
+                        </button>
+                      </form>
                     </td>
                   </tr>
                 ))}

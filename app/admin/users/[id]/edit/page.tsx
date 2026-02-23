@@ -19,18 +19,26 @@ export default async function Page({
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold">Edit User</h1>
-                    <p className="text-sm text-muted-foreground">ID: {id}</p>
+                    <h1 className="text-3xl font-bold text-gray-900">Edit User</h1>
+                    <p className="text-sm text-gray-600 mt-1">Update profile details and credentials.</p>
                 </div>
-                <Link
-                    href={`/admin/users/${id}`}
-                    className="px-4 py-2 rounded-md border text-sm font-medium"
-                >
-                    ← Back
-                </Link>
+                <div className="flex gap-2">
+                    <Link
+                        href={`/admin/users/${id}`}
+                        className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                        Back to Details
+                    </Link>
+                    <Link
+                        href="/admin/users"
+                        className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                        Users List
+                    </Link>
+                </div>
             </div>
 
-            <div className="rounded-lg border bg-card p-6">
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 <EditUserForm user={result.data} userId={id} />
             </div>
         </div>

@@ -83,8 +83,9 @@ export default function CreateUserForm() {
       }
 
       toast.success("User created successfully!");
-      router.push("/admin/users");
+      router.replace("/admin/users?created=1");
       router.refresh();
+      return;
     } catch {
       toast.error("Failed to create user");
     } finally {
