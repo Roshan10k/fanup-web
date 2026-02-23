@@ -1,91 +1,82 @@
-// components/Footer.tsx
 import Link from "next/link";
-import { Facebook, Twitter, Instagram } from "lucide-react"; 
+import { Facebook, Instagram, Twitter } from "lucide-react";
+
+const quickLinks = [
+  { label: "Sign Up", href: "/signup" },
+  { label: "Login", href: "/login" },
+  { label: "About", href: "#about" },
+  { label: "Contact", href: "#contact" },
+];
 
 export default function Footer() {
   return (
-    <footer className="bg-gradient-to-br from-gray-900 via-red-950 to-black text-gray-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Top section: Logo + Links */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10 text-center md:text-left">
-          
-          {/* Logo & About */}
+    <footer className="relative overflow-hidden bg-[#0b0f1a] text-gray-300">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(239,45,78,0.22),transparent_42%)]" />
+      <div className="absolute -left-24 bottom-0 h-72 w-72 rounded-full bg-amber-400/15 blur-3xl" />
+
+      <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
           <div>
-            <h2 className="text-3xl font-black text-white mb-3 tracking-tight">FanUp</h2>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              Your ultimate fantasy cricket platform.<br />
-              Build dream teams, compete in real-time, and win big prizes!
+            <h2 className="text-3xl font-bold tracking-tight text-white">FanUp</h2>
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-gray-400">
+              The premium fantasy cricket destination for strategic players who love real competition and real rewards.
             </p>
           </div>
 
-          {/* Quick Links */}
           <div>
-            <h3 className="font-semibold text-white mb-4 uppercase tracking-wide text-sm">Quick Links</h3>
-            <ul className="space-y-3">
-              <li>
-                <Link href="/signup" className="hover:text-red-400 transition-colors duration-200">
-                  Sign Up
-                </Link>
-              </li>
-              <li>
-                <Link href="/login" className="hover:text-red-400 transition-colors duration-200">
-                  Login
-                </Link>
-              </li>
-              <li>
-                <Link href="/about" className="hover:text-red-400 transition-colors duration-200">
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:text-red-400 transition-colors duration-200">
-                  Contact
-                </Link>
-              </li>
+            <h3 className="text-sm font-semibold tracking-[0.2em] text-gray-100 uppercase">Quick Links</h3>
+            <ul className="mt-4 space-y-3 text-sm">
+              {quickLinks.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} className="transition hover:text-red-400">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
-          {/* Social & Contact */}
           <div>
-            <h3 className="font-semibold text-white mb-4 uppercase tracking-wide text-sm">Follow Us</h3>
-            <div className="flex justify-center md:justify-start space-x-6 mb-6">
-              <a 
-                href="https://facebook.com/fanup" 
-                target="_blank" 
+            <h3 className="text-sm font-semibold tracking-[0.2em] text-gray-100 uppercase">Connect</h3>
+            <div className="mt-4 flex items-center gap-3">
+              <a
+                href="https://facebook.com/fanup"
+                target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-blue-400 transition-colors duration-200"
+                className="rounded-full border border-gray-700 p-2.5 text-gray-300 transition hover:border-blue-400 hover:text-blue-400"
               >
-                <Facebook className="w-6 h-6" />
+                <Facebook className="h-4 w-4" />
               </a>
-              <a 
-                href="https://x.com/fanup" 
-                target="_blank" 
+              <a
+                href="https://x.com/fanup"
+                target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-cyan-400 transition-colors duration-200"
+                className="rounded-full border border-gray-700 p-2.5 text-gray-300 transition hover:border-cyan-400 hover:text-cyan-400"
               >
-                <Twitter className="w-6 h-6" />
+                <Twitter className="h-4 w-4" />
               </a>
-              <a 
-                href="https://instagram.com/fanup" 
-                target="_blank" 
+              <a
+                href="https://instagram.com/fanup"
+                target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-pink-400 transition-colors duration-200"
+                className="rounded-full border border-gray-700 p-2.5 text-gray-300 transition hover:border-pink-400 hover:text-pink-400"
               >
-                <Instagram className="w-6 h-6" />
+                <Instagram className="h-4 w-4" />
               </a>
             </div>
-            <div className="text-sm text-gray-400 space-y-1">
-              <p>Email: <span className="text-white">support@fanup.com</span></p>
-              <p>Phone: <span className="text-white">+01 123 456</span></p>
+            <div className="mt-5 space-y-1 text-sm text-gray-400">
+              <p>
+                Email: <span className="text-gray-100">support@fanup.com</span>
+              </p>
+              <p>
+                Phone: <span className="text-gray-100">+01 123 456</span>
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Bottom section: copyright + subtle divider */}
-        <div className="border-t border-red-900/40 pt-6 mt-6 text-center text-gray-500 text-sm">
-          © {new Date().getFullYear()} FanUp. All rights reserved. 
-          <span className="mx-2">•</span>
-          Made with 🏏 Passion for Cricket
+        <div className="mt-10 border-t border-white/10 pt-6 text-center text-xs text-gray-500 sm:text-sm">
+          © {new Date().getFullYear()} FanUp. All rights reserved.
         </div>
       </div>
     </footer>
