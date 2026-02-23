@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  CheckCircle2,
   Mail,
+  Pencil,
   Phone,
+  Plus,
   Star,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -22,6 +25,7 @@ interface ProfileStats {
   teamsCreated: number;
   winRate: number;
   profileCompletion: number;
+  missingFields: string[];
 }
 
 export default function ProfilePage() {
@@ -33,11 +37,13 @@ export default function ProfilePage() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
+  const editSectionRef = useRef<HTMLElement | null>(null);
   const [profileStats, setProfileStats] = useState<ProfileStats>({
     contestsJoined: 0,
     teamsCreated: 0,
     winRate: 0,
     profileCompletion: 0,
+    missingFields: [],
   });
 
   const profilePictureUrl = useMemo(() => {
@@ -61,6 +67,16 @@ export default function ProfilePage() {
       .toUpperCase();
   }, [user?.email, user?.fullName]);
 
+  const completionPercent = Math.max(0, Math.min(100, profileStats.profileCompletion));
+  const isProfileComplete = completionPercent >= 100;
+
+  const openEditProfile = () => {
+    setIsEditing(true);
+    setTimeout(() => {
+      editSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+  };
+
   useEffect(() => {
     if (!user) return;
     setFullName(user.fullName || "");
@@ -80,6 +96,7 @@ export default function ProfilePage() {
         teamsCreated: 0,
         winRate: 0,
         profileCompletion: 0,
+        missingFields: [],
       });
       return;
     }
@@ -132,6 +149,10 @@ export default function ProfilePage() {
         ...(result.data || {}),
       };
       setUser(nextUser);
+      const statsResult = await handleGetProfileStats();
+      if (statsResult.success && statsResult.data) {
+        setProfileStats(statsResult.data as ProfileStats);
+      }
       setProfilePictureFile(null);
       setIsEditing(false);
       toast.success("Profile updated successfully");
@@ -191,6 +212,17 @@ export default function ProfilePage() {
                         {initials}
                       </div>
                     )}
+                    {!profilePictureUrl ? (
+                      <button
+                        type="button"
+                        onClick={openEditProfile}
+                        className={`absolute -right-1 -bottom-1 rounded-full border p-1.5 transition ${isDark ? "bg-slate-900 border-slate-600 text-slate-100 hover:bg-slate-800" : "bg-white border-gray-200 text-gray-800 hover:bg-gray-50"}`}
+                        aria-label="Add profile picture"
+                        title="Add profile picture"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    ) : null}
                   </div>
 
                   <div>
@@ -219,27 +251,60 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => setIsEditing((value) => !value)}
-                  className="rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold px-5 py-2.5 transition"
+                  className="inline-flex items-center gap-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold px-5 py-2.5 transition"
                 >
-                  {isEditing ? "Close Edit Profile" : "Edit Profile"}
+                  <Pencil className="w-4 h-4" />
+                  {isEditing ? "Close" : "Edit"}
                 </button>
               </div>
             </section>
 
             <section className={`rounded-3xl border p-6 shadow-sm ${isDark ? "border-slate-700 bg-slate-900" : "border-gray-200 bg-white"}`}>
-              <h4 className={`text-lg font-bold ${isDark ? "text-slate-100" : "text-gray-900"}`}>Profile Completion</h4>
+              <div className="flex items-center justify-between gap-2">
+                <h4 className={`text-lg font-bold ${isDark ? "text-slate-100" : "text-gray-900"}`}>Profile Completion</h4>
+                {isProfileComplete ? (
+                  <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${isDark ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-300" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
+                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                    Completed
+                  </span>
+                ) : null}
+              </div>
               <p className={`text-sm mt-1 ${isDark ? "text-slate-300" : "text-gray-600"}`}>Complete your details for better recommendations.</p>
+              {profileStats.missingFields.length > 0 ? (
+                <div className={`mt-3 rounded-xl border p-3 ${isDark ? "border-slate-700 bg-slate-950/60" : "border-gray-200 bg-gray-50"}`}>
+                  <p className={`text-xs font-semibold ${isDark ? "text-slate-300" : "text-gray-700"}`}>Missing to complete profile:</p>
+                  <ul className={`mt-2 space-y-2 text-sm ${isDark ? "text-slate-300" : "text-gray-700"}`}>
+                    {profileStats.missingFields.map((field) => (
+                      <li key={field} className={`flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 ${isDark ? "bg-slate-900/70" : "bg-white"}`}>
+                        <span>{field}</span>
+                        <button
+                          type="button"
+                          onClick={openEditProfile}
+                          className={`rounded-md px-2 py-1 text-xs font-semibold transition ${isDark ? "bg-slate-800 text-slate-100 hover:bg-slate-700" : "bg-gray-100 text-gray-800 hover:bg-gray-200"}`}
+                        >
+                          Add
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               <div className="mt-5">
                 <div className={`w-full h-2.5 rounded-full overflow-hidden ${isDark ? "bg-slate-800" : "bg-gray-100"}`}>
                   <div
                     className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full"
-                    style={{ width: `${Math.max(0, Math.min(100, profileStats.profileCompletion))}%` }}
+                    style={{ width: `${completionPercent}%` }}
                   />
                 </div>
-                <p className={`text-sm mt-2 ${isDark ? "text-slate-300" : "text-gray-700"}`}>{profileStats.profileCompletion}% complete</p>
+                <p className={`text-sm mt-2 ${isDark ? "text-slate-300" : "text-gray-700"}`}>{completionPercent}% complete</p>
               </div>
-              <button className="mt-5 w-full rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold py-2.5 transition">
-                Complete Profile
+              <button
+                type="button"
+                disabled={isProfileComplete}
+                onClick={openEditProfile}
+                className={`mt-5 w-full rounded-xl py-2.5 font-semibold transition ${isProfileComplete ? (isDark ? "bg-emerald-600/80 text-white cursor-default" : "bg-emerald-600 text-white cursor-default") : "bg-red-500 hover:bg-red-600 text-white"}`}
+              >
+                {isProfileComplete ? "Completed" : "Complete Profile"}
               </button>
             </section>
 
@@ -248,12 +313,18 @@ export default function ProfilePage() {
 
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                 <InfoRow icon={<Mail className={`w-5 h-5 ${isDark ? "text-slate-400" : "text-gray-500"}`} />} label="Email" text={user.email || "user@example.com"} />
-                <InfoRow icon={<Phone className={`w-5 h-5 ${isDark ? "text-slate-400" : "text-gray-500"}`} />} label="Phone" text={user.phone || "+977 1234567890"} />
+                <InfoRow
+                  icon={<Phone className={`w-5 h-5 ${isDark ? "text-slate-400" : "text-gray-500"}`} />}
+                  label="Phone"
+                  text={user.phone || "Not added yet"}
+                  actionLabel={user.phone ? undefined : "Add"}
+                  onAction={user.phone ? undefined : openEditProfile}
+                />
               </div>
             </section>
 
             {isEditing ? (
-              <section className={`rounded-2xl border shadow-sm p-6 ${isDark ? "bg-slate-900 border-slate-700" : "bg-white border-gray-200"}`}>
+              <section ref={editSectionRef} className={`rounded-2xl border shadow-sm p-6 ${isDark ? "bg-slate-900 border-slate-700" : "bg-white border-gray-200"}`}>
                 <h4 className={`text-lg font-bold ${isDark ? "text-slate-100" : "text-gray-900"}`}>Edit Profile</h4>
                 <p className={`text-sm mt-1 ${isDark ? "text-slate-300" : "text-gray-600"}`}>Update your personal details here.</p>
 
@@ -325,9 +396,9 @@ export default function ProfilePage() {
                 </form>
               </section>
             ) : (
-              <section className={`rounded-2xl border shadow-sm p-6 ${isDark ? "bg-slate-900 border-slate-700" : "bg-white border-gray-200"}`}>
+              <section ref={editSectionRef} className={`rounded-2xl border shadow-sm p-6 ${isDark ? "bg-slate-900 border-slate-700" : "bg-white border-gray-200"}`}>
                 <h4 className={`text-lg font-bold ${isDark ? "text-slate-100" : "text-gray-900"}`}>Edit Profile</h4>
-                <p className={`text-sm mt-1 ${isDark ? "text-slate-300" : "text-gray-600"}`}>Use the Edit Profile button to update your details.</p>
+                <p className={`text-sm mt-1 ${isDark ? "text-slate-300" : "text-gray-600"}`}>Use the edit icon above to update your details.</p>
               </section>
             )}
           </div>
@@ -347,15 +418,38 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function InfoRow({ icon, label, text }: { icon: React.ReactNode; label: string; text: string }) {
+function InfoRow({
+  icon,
+  label,
+  text,
+  actionLabel,
+  onAction,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  text: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
   const { isDark } = useThemeMode();
   return (
-    <div className={`flex items-center gap-3 rounded-xl border p-3 ${isDark ? "border-slate-700" : "border-gray-200"}`}>
+    <div className={`flex items-center justify-between gap-3 rounded-xl border p-3 ${isDark ? "border-slate-700" : "border-gray-200"}`}>
+      <div className="flex items-center gap-3">
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? "bg-slate-800" : "bg-gray-100"}`}>{icon}</div>
       <div>
         <p className={`text-xs ${isDark ? "text-slate-400" : "text-gray-500"}`}>{label}</p>
         <p className={`font-medium ${isDark ? "text-slate-200" : "text-gray-800"}`}>{text}</p>
       </div>
+      </div>
+      {actionLabel && onAction ? (
+        <button
+          type="button"
+          onClick={onAction}
+          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${isDark ? "bg-slate-800 text-slate-100 hover:bg-slate-700" : "bg-gray-100 text-gray-800 hover:bg-gray-200"}`}
+        >
+          {actionLabel}
+        </button>
+      ) : null}
     </div>
   );
 }

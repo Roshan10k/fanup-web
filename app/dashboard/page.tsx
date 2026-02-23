@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { CalendarDays, Plus, Target, Trophy, Users } from "lucide-react";
+import { CalendarDays, Target, Trophy, Users, Wallet } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Sidebar from "./_components/Sidebar";
@@ -83,7 +83,7 @@ export default function DashboardPage() {
           "http://localhost:3001";
 
         const [matchesResponse, entriesResult] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/matches?page=1&size=12&status=upcoming,live`, {
+          fetch(`${API_BASE_URL}/api/matches?page=1&size=12&status=upcoming`, {
             cache: "no-store",
           }),
           getMyContestEntriesAction(),
@@ -130,7 +130,7 @@ export default function DashboardPage() {
             time,
             team1,
             team2,
-            isLive: match.status === "live",
+            isLive: false,
             createHref,
             createLabel: existingEntry ? "Edit Team" : "Create Team",
           };
@@ -142,9 +142,7 @@ export default function DashboardPage() {
         }
       } catch (error) {
         if (isMounted) {
-          setMatchesError(
-            error instanceof Error ? error.message : "Failed to load dashboard data"
-          );
+          setMatchesError(error instanceof Error ? error.message : "Failed to load dashboard data");
         }
       } finally {
         if (isMounted) {
@@ -194,42 +192,77 @@ export default function DashboardPage() {
             viceCaptainId: entry.viceCaptainId || "",
           };
         }),
-    [myEntries]
+    [myEntries],
   );
 
   return (
-    <div className={`min-h-screen flex font-['Poppins'] ${isDark ? "bg-slate-950 text-slate-100" : "bg-gray-50"}`}>
+    <div className={`flex min-h-screen font-['Poppins'] ${isDark ? "bg-slate-950 text-slate-100" : "bg-gray-50"}`}>
       <Sidebar />
 
-      <main className={`flex-1 ${isDark ? "bg-slate-900" : "bg-white"}`}>
-        <header className={`px-8 py-6 flex items-center justify-between ${isDark ? "border-b border-slate-700" : "border-b border-gray-200"}`}>
+      <main
+        className={`flex-1 ${
+          isDark
+            ? "bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.08),transparent_38%),#0f172a]"
+            : "bg-[radial-gradient(circle_at_top_right,rgba(251,113,133,0.10),transparent_36%),#f8fafc]"
+        }`}
+      >
+        <header
+          className={`sticky top-0 z-20 flex items-center justify-between border-b px-8 py-5 backdrop-blur ${
+            isDark ? "border-slate-700/70 bg-slate-900/80" : "border-gray-200/80 bg-white/80"
+          }`}
+        >
           <div>
-            <h2 className={`text-3xl font-bold ${isDark ? "text-slate-100" : "text-gray-900"}`}>Dashboard</h2>
-            <p className={`text-sm mt-2 ${isDark ? "text-slate-300" : "text-gray-700"}`}>Welcome back {fullName.split(" ")[0]}! Ready to build today&apos;s winning team?</p>
+            <h2 className={`text-3xl font-black tracking-tight ${isDark ? "text-slate-100" : "text-gray-900"}`}>
+              Dashboard
+            </h2>
+            <p className={`mt-1 text-sm ${isDark ? "text-slate-300" : "text-gray-600"}`}>
+              Welcome back {fullName.split(" ")[0]}! Ready to build today&apos;s winning team?
+            </p>
           </div>
           <ThemeToggle />
         </header>
 
-        <div className="p-8 max-w-7xl space-y-7">
-          <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <div className={`xl:col-span-2 rounded-3xl border p-8 ${isDark ? "border-slate-700 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700" : "border-orange-200 bg-gradient-to-br from-yellow-100 via-orange-100 to-red-100"}`}>
-              <p className={`text-sm font-semibold ${isDark ? "text-slate-300" : "text-gray-700"}`}>Available Credit</p>
-              <p className={`text-6xl font-bold mt-2 ${isDark ? "text-slate-100" : "text-gray-900"}`}>{balance.toFixed(1)}</p>
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                <button className={`px-6 py-3 rounded-xl font-semibold transition shadow-sm inline-flex items-center gap-2 ${isDark ? "bg-slate-900 text-red-300 hover:bg-slate-800 border border-slate-600" : "bg-white text-red-500 hover:bg-gray-50"}`}>
-                  <Plus className="w-4 h-4" />
-                  Add Credit
-                </button>
+        <div className="w-full space-y-7 p-8">
+          <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <div
+              className={`relative overflow-hidden rounded-3xl border p-5 lg:p-6 xl:col-span-1 ${
+                isDark
+                  ? "border-slate-700 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-800"
+                  : "border-orange-200 bg-gradient-to-br from-yellow-100 via-orange-100 to-red-100"
+              }`}
+            >
+              <div className="absolute -right-14 -top-14 h-40 w-40 rounded-full bg-red-500/10 blur-3xl" />
+              <div>
+                <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDark ? "text-slate-400" : "text-gray-600"}`}>
+                  Available Credit
+                </p>
+                <p className={`mt-2 text-3xl font-black tracking-tight md:text-4xl ${isDark ? "text-slate-100" : "text-gray-900"}`}>
+                  {balance.toFixed(1)}
+                </p>
+                <p className={`mt-1 text-xs ${isDark ? "text-slate-400" : "text-gray-600"}`}>
+                  Ready to use in upcoming contests
+                </p>
+                <div className="mt-4">
                 <Link
                   href="/dashboard/wallet"
-                  className={`px-6 py-3 rounded-xl border font-medium transition ${isDark ? "border-slate-600 bg-slate-900/60 text-slate-200 hover:bg-slate-900" : "border-orange-200 bg-white/70 text-gray-700 hover:bg-white"}`}
+                  className={`inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 font-semibold transition ${
+                    isDark
+                      ? "border-slate-600 bg-slate-900/60 text-slate-200 hover:bg-slate-900"
+                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
                 >
+                  <Wallet className="h-4 w-4" />
                   Open Wallet
                 </Link>
+                </div>
               </div>
             </div>
 
-            <div className={`rounded-3xl border p-6 shadow-sm ${isDark ? "border-slate-700 bg-slate-900" : "border-gray-200 bg-white"}`}>
+            <div
+              className={`rounded-3xl border p-6 lg:p-7 shadow-sm xl:col-span-2 ${
+                isDark ? "border-slate-700 bg-slate-900/95" : "border-gray-200 bg-white"
+              }`}
+            >
               <h3 className={`text-lg font-bold ${isDark ? "text-slate-100" : "text-gray-900"}`}>Quick Snapshot</h3>
               {loading || matchesLoading ? (
                 <div className="mt-4 space-y-3">
@@ -240,50 +273,60 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="mt-4 space-y-3">
-                  <StatItem isDark={isDark} icon={<Users className="w-4 h-4 text-blue-500" />} label="My Teams" value={String(myTeams.length)} />
-                  <StatItem isDark={isDark} icon={<CalendarDays className="w-4 h-4 text-orange-500" />} label="Matches" value={String(availableMatches.length)} />
-                  <StatItem isDark={isDark} icon={<Target className="w-4 h-4 text-green-500" />} label="Avg Points" value={myTeams.length ? String(Math.round(myTeams.reduce((acc, team) => acc + team.points, 0) / myTeams.length)) : "0"} />
-                  <StatItem isDark={isDark} icon={<Trophy className="w-4 h-4 text-yellow-600" />} label="Best Score" value={myTeams.length ? String(Math.max(...myTeams.map((team) => team.points))) : "0"} />
+                  <StatItem isDark={isDark} icon={<Users className="h-4 w-4 text-blue-500" />} label="My Teams" value={String(myTeams.length)} />
+                  <StatItem isDark={isDark} icon={<CalendarDays className="h-4 w-4 text-orange-500" />} label="Matches" value={String(availableMatches.length)} />
+                  <StatItem isDark={isDark} icon={<Target className="h-4 w-4 text-emerald-500" />} label="Avg Points" value={myTeams.length ? String(Math.round(myTeams.reduce((acc, team) => acc + team.points, 0) / myTeams.length)) : "0"} />
+                  <StatItem isDark={isDark} icon={<Trophy className="h-4 w-4 text-yellow-500" />} label="Best Score" value={myTeams.length ? String(Math.max(...myTeams.map((team) => team.points))) : "0"} />
                 </div>
               )}
             </div>
           </section>
 
-          <section className={`rounded-2xl border p-2 inline-flex gap-2 ${isDark ? "border-slate-700 bg-slate-900" : "border-gray-200 bg-white"}`}>
-            <button
-              onClick={() => {
-                setActiveTab("upcoming");
-                router.replace("/dashboard?tab=upcoming");
-              }}
-              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition ${
-                resolvedActiveTab === "upcoming"
-                  ? "bg-red-500 text-white shadow-sm"
-                  : isDark
-                    ? "text-slate-300 hover:bg-slate-800"
-                    : "text-gray-600 hover:bg-gray-100"
+          <section className="space-y-4">
+            <div
+              className={`inline-flex gap-2 rounded-2xl border p-2 ${
+                isDark ? "border-slate-700 bg-slate-900/95" : "border-gray-200 bg-white"
               }`}
             >
-              Upcoming Matches
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab("myteams");
-                router.replace("/dashboard?tab=myteams");
-              }}
-              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition ${
-                resolvedActiveTab === "myteams"
-                  ? "bg-red-500 text-white shadow-sm"
-                  : isDark
-                    ? "text-slate-300 hover:bg-slate-800"
-                    : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              My Teams
-            </button>
+              <button
+                onClick={() => {
+                  setActiveTab("upcoming");
+                  router.replace("/dashboard?tab=upcoming");
+                }}
+                className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                  resolvedActiveTab === "upcoming"
+                    ? "bg-red-500 text-white shadow-sm"
+                    : isDark
+                      ? "text-slate-300 hover:bg-slate-800"
+                      : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                Upcoming Matches
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("myteams");
+                  router.replace("/dashboard?tab=myteams");
+                }}
+                className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                  resolvedActiveTab === "myteams"
+                    ? "bg-red-500 text-white shadow-sm"
+                    : isDark
+                      ? "text-slate-300 hover:bg-slate-800"
+                      : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                My Teams
+              </button>
+            </div>
+
+            <h3 className={`text-xl font-bold tracking-tight ${isDark ? "text-slate-100" : "text-gray-900"}`}>
+              {resolvedActiveTab === "upcoming" ? "Available Matches" : "My Teams"}
+            </h3>
           </section>
 
           {resolvedActiveTab === "upcoming" ? (
-            <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
               {loading || matchesLoading ? (
                 <>
                   <MatchCardSkeleton />
@@ -291,7 +334,13 @@ export default function DashboardPage() {
                   <MatchCardSkeleton />
                 </>
               ) : matchesError ? (
-                <div className="col-span-full rounded-2xl border border-red-200 bg-red-50 p-8 text-center text-red-700">
+                <div
+                  className={`col-span-full rounded-2xl border p-8 text-center ${
+                    isDark
+                      ? "border-red-400/30 bg-red-500/10 text-red-200"
+                      : "border-red-200 bg-red-50 text-red-700"
+                  }`}
+                >
                   {matchesError}
                 </div>
               ) : availableMatches.length > 0 ? (
@@ -309,19 +358,23 @@ export default function DashboardPage() {
                   />
                 ))
               ) : (
-                <div className={`col-span-full rounded-2xl border p-8 text-center ${isDark ? "border-slate-700 bg-slate-900 text-slate-300" : "border-gray-200 bg-white text-gray-600"}`}>
-                  No upcoming/live matches available.
+                <div
+                  className={`col-span-full rounded-2xl border p-8 text-center ${
+                    isDark ? "border-slate-700 bg-slate-900 text-slate-300" : "border-gray-200 bg-white text-gray-600"
+                  }`}
+                >
+                  No upcoming matches available.
                 </div>
               )}
             </section>
           ) : loading || matchesLoading ? (
-            <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
               <TeamCardSkeleton />
               <TeamCardSkeleton />
               <TeamCardSkeleton />
             </section>
           ) : myTeams.length > 0 ? (
-            <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
               {myTeams.map((team) => (
                 <TeamCard
                   key={team.id}
@@ -337,12 +390,18 @@ export default function DashboardPage() {
               ))}
             </section>
           ) : (
-            <section className={`rounded-3xl border border-dashed p-12 text-center ${isDark ? "border-slate-600 bg-slate-900" : "border-gray-300 bg-gray-50"}`}>
-              <p className={`text-xl font-bold mb-2 ${isDark ? "text-slate-100" : "text-gray-900"}`}>No Teams Yet</p>
-              <p className={`${isDark ? "text-slate-300" : "text-gray-600"} text-sm`}>Create a team from upcoming matches to start competing.</p>
+            <section
+              className={`rounded-3xl border border-dashed p-12 text-center ${
+                isDark ? "border-slate-600 bg-slate-900" : "border-gray-300 bg-gray-50"
+              }`}
+            >
+              <p className={`mb-2 text-xl font-bold ${isDark ? "text-slate-100" : "text-gray-900"}`}>No Teams Yet</p>
+              <p className={`text-sm ${isDark ? "text-slate-300" : "text-gray-600"}`}>
+                Create a team from upcoming matches to start competing.
+              </p>
               <Link
                 href="/dashboard?tab=upcoming"
-                className="mt-5 inline-flex px-5 py-2.5 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition"
+                className="mt-5 inline-flex rounded-xl bg-red-500 px-5 py-2.5 font-semibold text-white transition hover:bg-red-600"
               >
                 Create Team
               </Link>
@@ -356,7 +415,11 @@ export default function DashboardPage() {
 
 function StatItem({ icon, label, value, isDark }: { icon: ReactNode; label: string; value: string; isDark: boolean }) {
   return (
-    <div className={`flex items-center justify-between rounded-xl border px-4 py-3 ${isDark ? "border-slate-700 bg-slate-800/80" : "border-gray-100 bg-gray-50"}`}>
+    <div
+      className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
+        isDark ? "border-slate-700 bg-slate-800/70" : "border-gray-200 bg-gray-50"
+      }`}
+    >
       <div className={`flex items-center gap-2 ${isDark ? "text-slate-300" : "text-gray-700"}`}>
         {icon}
         <span className="text-sm font-medium">{label}</span>
@@ -368,20 +431,32 @@ function StatItem({ icon, label, value, isDark }: { icon: ReactNode; label: stri
 
 function StatItemSkeleton({ isDark }: { isDark: boolean }) {
   return (
-    <div className={`h-14 rounded-xl border animate-pulse ${isDark ? "border-slate-700 bg-slate-800" : "border-gray-100 bg-gray-100"}`} />
+    <div
+      className={`h-14 animate-pulse rounded-xl border ${
+        isDark ? "border-slate-700 bg-slate-800" : "border-gray-200 bg-gray-100"
+      }`}
+    />
   );
 }
 
 function MatchCardSkeleton() {
   const { isDark } = useThemeMode();
   return (
-    <div className={`h-[320px] rounded-2xl border animate-pulse ${isDark ? "border-slate-700 bg-slate-800" : "border-gray-200 bg-gray-100"}`} />
+    <div
+      className={`h-[320px] animate-pulse rounded-2xl border ${
+        isDark ? "border-slate-700 bg-slate-800" : "border-gray-200 bg-gray-100"
+      }`}
+    />
   );
 }
 
 function TeamCardSkeleton() {
   const { isDark } = useThemeMode();
   return (
-    <div className={`h-[360px] rounded-2xl border animate-pulse ${isDark ? "border-slate-700 bg-slate-800" : "border-gray-200 bg-gray-100"}`} />
+    <div
+      className={`h-[360px] animate-pulse rounded-2xl border ${
+        isDark ? "border-slate-700 bg-slate-800" : "border-gray-200 bg-gray-100"
+      }`}
+    />
   );
 }
