@@ -1,6 +1,8 @@
 "use client";
 
 import { AlertTriangle, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { useThemeMode } from "../../_components/useThemeMode";
 
 interface DeleteTeamModalProps {
   isOpen: boolean;
@@ -17,17 +19,19 @@ export default function DeleteTeamModal({
   onConfirm,
   isDeleting = false,
 }: DeleteTeamModalProps) {
+  const { isDark } = useThemeMode();
+
   if (!isOpen) {
     return null;
   }
 
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl"
+        className={`w-full max-w-md overflow-hidden rounded-xl border shadow-2xl ${isDark ? "border-slate-700 bg-slate-900" : "border-gray-200 bg-white"}`}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="relative bg-gradient-to-br from-red-500 to-red-600 px-6 py-7 text-white">
@@ -49,18 +53,18 @@ export default function DeleteTeamModal({
           </div>
         </div>
 
-        <div className="px-6 py-6">
-          <p className="text-sm text-gray-700">
-            Delete <span className="font-semibold text-gray-900">{teamName}</span> from this contest?
+        <div className={`px-6 py-6 ${isDark ? "bg-slate-900" : "bg-white"}`}>
+          <p className={`text-sm ${isDark ? "text-slate-300" : "text-gray-700"}`}>
+            Delete <span className={`font-semibold ${isDark ? "text-slate-100" : "text-gray-900"}`}>{teamName}</span> from this contest?
             You can create a new team for the same match after deleting.
           </p>
         </div>
 
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+        <div className={`px-6 py-4 border-t flex justify-end gap-3 ${isDark ? "bg-slate-800/50 border-slate-700" : "bg-gray-50 border-gray-200"}`}>
           <button
             onClick={onClose}
             disabled={isDeleting}
-            className="px-5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition disabled:opacity-50"
+            className={`px-5 py-2.5 rounded-lg border font-medium transition disabled:opacity-50 ${isDark ? "border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"}`}
           >
             Cancel
           </button>
@@ -75,4 +79,6 @@ export default function DeleteTeamModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
