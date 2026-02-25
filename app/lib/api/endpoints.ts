@@ -26,6 +26,13 @@ export const API = {
         LIST: '/api/matches',
         COMPLETE: (matchId: string) => `/api/matches/${matchId}/complete`,
     },
+    NOTIFICATIONS: {
+        LIST: '/api/notifications',
+        UNREAD_COUNT: '/api/notifications/unread-count',
+        MARK_READ: (id: string) => `/api/notifications/${id}/read`,
+        MARK_ALL_READ: '/api/notifications/read-all',
+        DELETE: (id: string) => `/api/notifications/${id}`,
+    },
     ADMIN: {
         MATCHES: '/api/admin/matches',
         MATCH_LEADERBOARD: (matchId: string) => `/api/admin/matches/${matchId}/leaderboard`,
