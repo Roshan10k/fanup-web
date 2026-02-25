@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -8,12 +9,29 @@ import { Bell, Home, Wallet, User, Settings, LogOut, BarChart3 } from "lucide-re
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useThemeMode } from "./useThemeMode";
+import { getUnreadCountAction } from "@/app/lib/action/notification_action";
 
 export default function Sidebar() {
   const { logout, user } = useAuth();
   const { isDark } = useThemeMode();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const pathname = usePathname();
+
+  // Fetch unread notification count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      const result = await getUnreadCountAction();
+      if (result.success && result.data) {
+        setUnreadCount(result.data.count);
+      }
+    };
+    fetchUnreadCount();
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const NAV_LINKS = [
     { icon: Home, label: "Home", href: "/dashboard" },
@@ -23,7 +41,7 @@ export default function Sidebar() {
   ];
 
   const META_LINKS = [
-    { icon: Bell, label: "Notification", href: "/notifications", badge: true },
+    { icon: Bell, label: "Notification", href: "/dashboard/notifications", badge: unreadCount > 0, badgeCount: unreadCount },
     { icon: Settings, label: "Settings", href: "/settings" },
   ];
 
@@ -47,7 +65,7 @@ export default function Sidebar() {
   };
 
   const renderNavItem = (
-    item: { icon: LucideIcon; label: string; href: string; badge?: boolean },
+    item: { icon: LucideIcon; label: string; href: string; badge?: boolean; badgeCount?: number },
     section: "main" | "meta",
   ) => {
     const isActive = isLinkActive(item.href);
@@ -87,18 +105,21 @@ export default function Sidebar() {
           />
         </span>
         <span className="text-sm font-semibold tracking-tight">{item.label}</span>
-        {item.badge ? (
+        {item.badge && item.badgeCount && item.badgeCount > 0 ? (
           <span
-            className={`ml-auto h-2.5 w-2.5 rounded-full ${
-              isDark ? "bg-emerald-400 shadow-[0_0_0_4px_rgba(16,185,129,0.16)]" : "bg-red-500"
+            className={`ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold ${
+              isDark ? "bg-red-500 text-white" : "bg-red-500 text-white"
             }`}
-          />
+          >
+            {item.badgeCount > 99 ? "99+" : item.badgeCount}
+          </span>
         ) : null}
       </Link>
     );
   };
 
   return (
+    <>
     <aside
       className={`sticky top-0 flex h-screen w-[19rem] shrink-0 flex-col border-r p-4 ${
         isDark
@@ -174,44 +195,77 @@ export default function Sidebar() {
           Logout
         </button>
 
-        {showLogoutDialog && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-            <div
-              className={`w-full max-w-sm rounded-2xl border p-6 ${
-                isDark ? "border-slate-700 bg-slate-900" : "border-white bg-white"
-              }`}
+      </div>
+    </aside>
+    {showLogoutDialog && createPortal(
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+        onClick={() => setShowLogoutDialog(false)}
+      >
+        <div
+          className={`w-full max-w-md rounded-xl overflow-hidden border shadow-2xl ${
+            isDark ? "border-slate-700 bg-slate-900" : "border-gray-200 bg-white"
+          }`}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="relative px-6 py-6 bg-gradient-to-r from-red-500 to-rose-600 text-white">
+            <button
+              type="button"
+              onClick={() => setShowLogoutDialog(false)}
+              className="absolute top-3 right-3 p-1 rounded-md hover:bg-white/20"
             >
-              <h3 className={`mb-2 text-lg font-bold ${isDark ? "text-slate-100" : "text-gray-900"}`}>
-                Confirm Logout
-              </h3>
-              <p className={`mb-6 text-sm ${isDark ? "text-slate-300" : "text-gray-600"}`}>
-                Are you sure you want to logout?
-              </p>
-              <div className="flex gap-3">
-                <button
-                  className={`flex-1 rounded-xl py-2.5 transition ${
-                    isDark ? "bg-slate-800 text-slate-200 hover:bg-slate-700" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                  onClick={() => setShowLogoutDialog(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  className={`flex-1 rounded-xl border py-2.5 transition ${
-                    isDark ? "border-red-400/50 text-red-300 hover:bg-red-500/10" : "border-red-500 text-red-500 hover:bg-red-50"
-                  }`}
-                  onClick={async () => {
-                    setShowLogoutDialog(false);
-                    await logout();
-                  }}
-                >
-                  Logout
-                </button>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">Confirm Logout</h3>
+                <p className="text-sm text-white/90">End your session now?</p>
               </div>
             </div>
           </div>
-        )}
-      </div>
-    </aside>
+
+          <div className={`px-6 py-5 ${isDark ? "bg-slate-900" : "bg-white"}`}>
+            <p className={`text-sm ${isDark ? "text-slate-300" : "text-gray-600"}`}>
+              You will be redirected to login and need to sign in again.
+            </p>
+          </div>
+
+          <div className={`px-6 py-4 border-t flex justify-end gap-3 ${
+            isDark ? "bg-slate-800/50 border-slate-700" : "bg-gray-50 border-gray-200"
+          }`}>
+            <button
+              type="button"
+              onClick={() => setShowLogoutDialog(false)}
+              className={`px-4 py-2 rounded-lg border text-sm font-semibold transition ${
+                isDark
+                  ? "border-slate-600 text-slate-200 hover:bg-slate-700"
+                  : "border-gray-300 text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                setShowLogoutDialog(false);
+                await logout();
+              }}
+              className="px-4 py-2 rounded-lg bg-red-600 text-sm font-semibold text-white hover:bg-red-700 transition"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+    </>
   );
 }
