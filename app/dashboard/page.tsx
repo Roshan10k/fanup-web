@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { CalendarDays, Target, Trophy, Users, Wallet } from "lucide-react";
+import { CalendarDays, Target, Trophy, Users, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Sidebar from "./_components/Sidebar";
@@ -65,6 +65,9 @@ export default function DashboardPage() {
   const [myEntries, setMyEntries] = useState<ContestEntry[]>([]);
   const [matchesLoading, setMatchesLoading] = useState(true);
   const [matchesError, setMatchesError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({ page: 1, size: 6, totalItems: 0, totalPages: 1 });
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 6;
 
   const fullName = user?.fullName || "User";
   const balance = user?.balance ?? 0;
@@ -83,7 +86,7 @@ export default function DashboardPage() {
           "http://localhost:3001";
 
         const [matchesResponse, entriesResult] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/matches?page=1&size=12&status=upcoming`, {
+          fetch(`${API_BASE_URL}/api/matches?page=${currentPage}&size=${pageSize}&status=upcoming`, {
             cache: "no-store",
           }),
           getMyContestEntriesAction(),
@@ -139,6 +142,15 @@ export default function DashboardPage() {
         if (isMounted) {
           setAvailableMatches(mapped);
           setMyEntries(entriesRows);
+          
+          // Set pagination from API response
+          const paginationData = matchesPayload.pagination || {
+            page: currentPage,
+            size: pageSize,
+            totalItems: rows.length,
+            totalPages: 1,
+          };
+          setPagination(paginationData);
         }
       } catch (error) {
         if (isMounted) {
@@ -155,7 +167,89 @@ export default function DashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [currentPage, pageSize]);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const renderPaginationButtons = () => {
+    const { page, totalPages } = pagination;
+    const pages: React.ReactNode[] = [];
+    const delta = 1;
+
+    const start = Math.max(1, page - delta);
+    const end = Math.min(totalPages, page + delta);
+
+    // First page
+    if (start > 1) {
+      pages.push(
+        <button
+          key={1}
+          onClick={() => goToPage(1)}
+          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+            isDark
+              ? "text-slate-200 bg-slate-800 border border-slate-600 hover:bg-slate-700"
+              : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+          }`}
+        >
+          1
+        </button>
+      );
+      if (start > 2) {
+        pages.push(
+          <span key="start-ellipsis" className={`px-2 py-2 ${isDark ? "text-slate-500" : "text-gray-500"}`}>
+            ...
+          </span>
+        );
+      }
+    }
+
+    // Page numbers
+    for (let i = start; i <= end; i++) {
+      pages.push(
+        <button
+          key={i}
+          onClick={() => goToPage(i)}
+          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+            i === page
+              ? "bg-red-600 text-white border border-red-600"
+              : isDark
+                ? "text-slate-200 bg-slate-800 border border-slate-600 hover:bg-slate-700"
+                : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+          }`}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    // Last page
+    if (end < totalPages) {
+      if (end < totalPages - 1) {
+        pages.push(
+          <span key="end-ellipsis" className={`px-2 py-2 ${isDark ? "text-slate-500" : "text-gray-500"}`}>
+            ...
+          </span>
+        );
+      }
+      pages.push(
+        <button
+          key={totalPages}
+          onClick={() => goToPage(totalPages)}
+          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+            isDark
+              ? "text-slate-200 bg-slate-800 border border-slate-600 hover:bg-slate-700"
+              : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+          }`}
+        >
+          {totalPages}
+        </button>
+      );
+    }
+
+    return pages;
+  };
 
   const tabFromQuery = searchParams.get("tab");
   const resolvedActiveTab =
@@ -326,6 +420,7 @@ export default function DashboardPage() {
           </section>
 
           {resolvedActiveTab === "upcoming" ? (
+            <>
             <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
               {loading || matchesLoading ? (
                 <>
@@ -367,6 +462,56 @@ export default function DashboardPage() {
                 </div>
               )}
             </section>
+
+            {/* Pagination */}
+            {pagination.totalItems > 0 && (
+              <div
+                className={`rounded-2xl border px-6 py-4 ${
+                  isDark ? "border-slate-700 bg-slate-900/95" : "border-gray-200 bg-white"
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className={`text-sm ${isDark ? "text-slate-400" : "text-gray-600"}`}>
+                    Showing{" "}
+                    <span className="font-medium">{(pagination.page - 1) * pagination.size + 1}</span> to{" "}
+                    <span className="font-medium">
+                      {Math.min(pagination.page * pagination.size, pagination.totalItems)}
+                    </span>{" "}
+                    of <span className="font-medium">{pagination.totalItems}</span> matches
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      disabled={pagination.page === 1}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                        isDark
+                          ? "text-slate-200 bg-slate-800 border border-slate-600 hover:bg-slate-700 disabled:hover:bg-slate-800"
+                          : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 disabled:hover:bg-white"
+                      }`}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      Previous
+                    </button>
+
+                    {renderPaginationButtons()}
+
+                    <button
+                      disabled={pagination.page === pagination.totalPages}
+                      onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
+                      className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                        isDark
+                          ? "text-slate-200 bg-slate-800 border border-slate-600 hover:bg-slate-700 disabled:hover:bg-slate-800"
+                          : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 disabled:hover:bg-white"
+                      }`}
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            </>
           ) : loading || matchesLoading ? (
             <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
               <TeamCardSkeleton />
