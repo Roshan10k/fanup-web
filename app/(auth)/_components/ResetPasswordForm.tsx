@@ -49,17 +49,17 @@ export default function ResetPasswordForm({ token }: { token: string }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
+    <div className="min-h-[calc(100vh-73px)] flex items-center justify-center bg-gray-50 px-4 dark:bg-slate-950">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 dark:bg-slate-900 dark:border dark:border-slate-700">
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/15">
             <Lock className="text-red-600" size={22} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">
             Reset your password
           </h1>
-          <p className="text-sm text-gray-600 mt-2">
+          <p className="text-sm text-gray-600 mt-2 dark:text-slate-300">
             Choose a new password for your account
           </p>
         </div>
@@ -68,7 +68,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           {/* New Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-slate-300">
               New Password
             </label>
             <input
@@ -78,8 +78,8 @@ export default function ResetPasswordForm({ token }: { token: string }) {
               className={`w-full rounded-lg border px-4 py-3 text-sm focus:outline-none focus:ring-2 ${
                 errors.password
                   ? "border-red-500 focus:ring-red-400"
-                  : "border-gray-300 focus:ring-red-400"
-              }`}
+                  : "border-gray-300 dark:border-slate-600 focus:ring-red-400"
+              } dark:bg-slate-800 dark:text-slate-100`}
             />
             {errors.password && (
               <p className="text-xs text-red-500 mt-1">
@@ -90,7 +90,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
 
           {/* Confirm Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-slate-300">
               Confirm New Password
             </label>
             <input
@@ -100,8 +100,8 @@ export default function ResetPasswordForm({ token }: { token: string }) {
               className={`w-full rounded-lg border px-4 py-3 text-sm focus:outline-none focus:ring-2 ${
                 errors.confirmPassword
                   ? "border-red-500 focus:ring-red-400"
-                  : "border-gray-300 focus:ring-red-400"
-              }`}
+                  : "border-gray-300 dark:border-slate-600 focus:ring-red-400"
+              } dark:bg-slate-800 dark:text-slate-100`}
             />
             {errors.confirmPassword && (
               <p className="text-xs text-red-500 mt-1">
@@ -129,10 +129,10 @@ export default function ResetPasswordForm({ token }: { token: string }) {
 
         {/* Footer Links */}
         <div className="flex justify-between text-sm mt-6">
-          <Link href="/login" className="text-red-600 hover:underline">
+          <Link href="/login" className="text-red-600 hover:underline dark:text-red-400">
             Back to Login
           </Link>
-          <Link href="/request-reset-password" className="text-red-600 hover:underline">
+          <Link href="/request-reset-password" className="text-red-600 hover:underline dark:text-red-400">
             Resend reset link
           </Link>
         </div>
