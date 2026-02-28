@@ -7,12 +7,51 @@ import { loginSchema, LoginType } from "../schema";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { handleLogin } from "@/app/lib/action/auth_action";
+import { handleGoogleLogin, handleLogin } from "@/app/lib/action/auth_action";
 import { useAuth } from "@/context/AuthContext";
+
+const GOOGLE_SCRIPT_ID = "google-identity-services";
+
+const loadGoogleIdentityScript = () =>
+  new Promise<void>((resolve, reject) => {
+    if (typeof window === "undefined") {
+      reject(new Error("Window is not available"));
+      return;
+    }
+
+    const existing = document.getElementById(
+      GOOGLE_SCRIPT_ID,
+    ) as HTMLScriptElement | null;
+
+    if ((window as any).google?.accounts?.id) {
+      resolve();
+      return;
+    }
+
+    if (existing) {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener(
+        "error",
+        () => reject(new Error("Failed to load Google script")),
+        { once: true },
+      );
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = GOOGLE_SCRIPT_ID;
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load Google script"));
+    document.head.appendChild(script);
+  });
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const router = useRouter();
   const { checkAuth } = useAuth();
 
@@ -50,12 +89,69 @@ export default function LoginForm() {
     }
   };
 
+  const onGoogleContinue = async () => {
+    setErrorMessage(null);
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      setErrorMessage("Google login is not configured.");
+      return;
+    }
+
+    try {
+      setIsGoogleSubmitting(true);
+      await loadGoogleIdentityScript();
+
+      const google = (window as any).google;
+      if (!google?.accounts?.id) {
+        throw new Error("Google sign-in is unavailable");
+      }
+
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async (response: { credential?: string }) => {
+          try {
+            if (!response?.credential) {
+              setErrorMessage("Failed to get Google credential.");
+              return;
+            }
+
+            const result = await handleGoogleLogin(response.credential);
+            if (!result.success) {
+              setErrorMessage(result.message || "Google login failed.");
+              return;
+            }
+
+            await checkAuth();
+            if (result.data?.role === "admin") {
+              router.replace("/admin");
+            } else {
+              router.replace("/dashboard");
+            }
+            router.refresh();
+          } catch (error: any) {
+            setErrorMessage(error.message || "Google login failed.");
+          } finally {
+            setIsGoogleSubmitting(false);
+          }
+        },
+      });
+
+      google.accounts.id.prompt();
+      setTimeout(() => {
+        setIsGoogleSubmitting(false);
+      }, 15000);
+    } catch (error: any) {
+      setErrorMessage(error.message || "Google login failed.");
+      setIsGoogleSubmitting(false);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Header */}
       <div className="text-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
-        <p className="text-sm text-gray-600 mt-2">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100">Welcome Back</h1>
+        <p className="text-sm text-gray-600 mt-2 dark:text-slate-300">
           Login to continue your FanUp journey
         </p>
       </div>
@@ -69,7 +165,7 @@ export default function LoginForm() {
 
       {/* Email */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        <label className="block text-sm font-medium text-gray-700 mb-1.5 dark:text-slate-300">
           Email <span className="text-red-500">*</span>
         </label>
         <input
@@ -77,8 +173,8 @@ export default function LoginForm() {
           {...register("email")}
           placeholder="Enter your email"
           className={`w-full rounded-lg border ${
-            errors.email ? "border-red-500" : "border-gray-300"
-          } px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400`}
+            errors.email ? "border-red-500" : "border-gray-300 dark:border-slate-600"
+          } px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 dark:bg-slate-800 dark:text-slate-100`}
         />
         {errors.email && (
           <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
@@ -88,12 +184,12 @@ export default function LoginForm() {
       {/* Password */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
             Password <span className="text-red-500">*</span>
           </label>
           <Link
             href="/request-reset-password"
-            className="text-sm text-red-600 hover:text-red-700"
+            className="text-sm text-red-600 hover:text-red-700 dark:text-red-400"
           >
             Forgot Password?
           </Link>
@@ -105,13 +201,13 @@ export default function LoginForm() {
             {...register("password")}
             placeholder="Enter your password"
             className={`w-full rounded-lg border ${
-              errors.password ? "border-red-500" : "border-gray-300"
-            } px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-red-400`}
+              errors.password ? "border-red-500" : "border-gray-300 dark:border-slate-600"
+            } px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 dark:bg-slate-800 dark:text-slate-100`}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400"
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
@@ -141,10 +237,10 @@ export default function LoginForm() {
       {/* Divider */}
       <div className="relative my-8">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300" />
+          <div className="w-full border-t border-gray-300 dark:border-slate-700" />
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-6 bg-white text-gray-500 font-medium">
+          <span className="px-6 bg-white text-gray-500 font-medium dark:bg-slate-900 dark:text-slate-400">
             Or continue with
           </span>
         </div>
@@ -155,7 +251,9 @@ export default function LoginForm() {
         {/* Google*/}
         <button
           type="button"
-          className="w-full flex items-center justify-center gap-3 px-6 py-3.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition font-medium shadow-sm"
+          onClick={onGoogleContinue}
+          disabled={isGoogleSubmitting}
+          className="w-full flex items-center justify-center gap-3 px-6 py-3.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition font-medium shadow-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
         >
           <svg className="w-6 h-6" viewBox="0 0 24 24">
             <path
@@ -175,18 +273,9 @@ export default function LoginForm() {
               d="M12 4.98c1.64 0 3.11.56 4.27 1.66l3.19-3.19C17.46 1.01 14.97 0 12 0 6.62 0 2.77 2.61.96 6.34l4.55 2.45C6.42 6.02 9 4.98 12 4.98z"
             />
           </svg>
-          <span>Continue with Google</span>
-        </button>
-
-        {/* Facebook */}
-        <button
-          type="button"
-          className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-[#1877F2] text-white rounded-xl hover:bg-[#166FE5] transition font-medium shadow-sm"
-        >
-          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="white">
-            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-          </svg>
-          <span>Continue with Facebook</span>
+          <span>
+            {isGoogleSubmitting ? "Connecting to Google..." : "Continue with Google"}
+          </span>
         </button>
       </div>
     </form>

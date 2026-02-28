@@ -29,6 +29,19 @@ export const login = async (loginData: any) => {
   }
 };
 
+export const googleLogin = async (credential: string) => {
+  try {
+    const response = await axios.post(API.AUTH.GOOGLE_LOGIN, { credential });
+    return response.data;
+  } catch (err: Error | any) {
+    throw new Error(
+      err.response?.data?.message ||
+        err.message ||
+        "Google login failed",
+    );
+  }
+};
+
 export const requestPasswordReset = async (email: string) => {
     try {
         const response = await axios.post(API.AUTH.REQUEST_PASSWORD_RESET, { email });

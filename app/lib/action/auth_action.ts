@@ -2,6 +2,7 @@
 "use server";
 
 import { 
+  googleLogin,
   login, 
   register, 
   requestPasswordReset,  
@@ -56,6 +57,27 @@ export async function handleLogin(formData: unknown) {
     return { success: false, message: result.message || "login failed" };
   } catch (error: unknown) {
     return { success: false, message: getErrorMessage(error, "login failed") };
+  }
+}
+
+export async function handleGoogleLogin(credential: string) {
+  try {
+    const result = await googleLogin(credential);
+    if (result.success) {
+      await setAuthToken(result.token);
+      await setUserData(result.data);
+      return {
+        success: true,
+        message: "Login Successful",
+        data: result.data,
+      };
+    }
+    return { success: false, message: result.message || "Google login failed" };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      message: getErrorMessage(error, "Google login failed"),
+    };
   }
 }
 
