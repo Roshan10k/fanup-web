@@ -48,15 +48,15 @@ export default function HowItWorks() {
 
   return (
     <section id="how-it-works" ref={sectionRef} className="relative overflow-hidden py-22">
-      <div className="absolute inset-0 bg-gradient-to-b from-[#fff8ea] via-[#fff7f7] to-[#f9faff]" />
-      <div className="absolute -left-16 top-1/3 h-56 w-56 rounded-full bg-red-200/45 blur-3xl" />
-      <div className="absolute right-0 top-16 h-64 w-64 rounded-full bg-amber-200/45 blur-3xl" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#fff8ea] via-[#fff7f7] to-[#f9faff] dark:from-slate-900 dark:via-slate-900 dark:to-slate-950" />
+      <div className="absolute -left-16 top-1/3 h-56 w-56 rounded-full bg-red-200/45 blur-3xl dark:bg-red-400/15" />
+      <div className="absolute right-0 top-16 h-64 w-64 rounded-full bg-amber-200/45 blur-3xl dark:bg-amber-300/15" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-14 text-center">
           <p className="mb-4 text-xs font-semibold tracking-[0.2em] text-red-500 uppercase">How It Works</p>
-          <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">Start in Three Simple Steps</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-base text-gray-600 sm:text-lg">
+          <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl dark:text-slate-100">Start in Three Simple Steps</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-base text-gray-600 sm:text-lg dark:text-slate-300">
             A streamlined flow designed for quick onboarding and competitive matchday decisions.
           </p>
         </div>
@@ -70,8 +70,8 @@ export default function HowItWorks() {
               className="step-card-enter premium-card rounded-3xl p-7 transition duration-500"
             >
               <p className="mb-4 text-sm font-semibold tracking-[0.16em] text-red-500 uppercase">Step {step.id}</p>
-              <h3 className="mb-3 text-2xl font-semibold text-gray-900">{step.title}</h3>
-              <p className="text-sm leading-relaxed text-gray-600">{step.text}</p>
+              <h3 className="mb-3 text-2xl font-semibold text-gray-900 dark:text-slate-100">{step.title}</h3>
+              <p className="text-sm leading-relaxed text-gray-600 dark:text-slate-300">{step.text}</p>
             </article>
           ))}
         </div>

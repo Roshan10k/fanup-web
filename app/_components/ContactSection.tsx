@@ -54,16 +54,16 @@ export default function ContactSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-14 text-center">
           <p className="mb-4 text-xs font-semibold tracking-[0.2em] text-red-500 uppercase">Contact</p>
-          <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">Get In Touch</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-base text-gray-600 sm:text-lg">
+          <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl dark:text-slate-100">Get In Touch</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-base text-gray-600 sm:text-lg dark:text-slate-300">
             Need support or partnership details? Reach out and our team will respond quickly.
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           <div className="premium-card rounded-3xl p-7 sm:p-8">
-            <h3 className="text-2xl font-semibold text-gray-900">Contact Details</h3>
-            <p className="mt-2 text-sm text-gray-600">Prefer direct communication? Use any channel below.</p>
+            <h3 className="text-2xl font-semibold text-gray-900 dark:text-slate-100">Contact Details</h3>
+            <p className="mt-2 text-sm text-gray-600 dark:text-slate-300">Prefer direct communication? Use any channel below.</p>
 
             <div className="mt-8 space-y-6">
               {contactItems.map((item) => (
@@ -74,8 +74,8 @@ export default function ContactSection() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="text-lg font-semibold text-gray-900">{item.title}</h4>
-                    <p className="text-gray-600">{item.value}</p>
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-slate-100">{item.title}</h4>
+                    <p className="text-gray-600 dark:text-slate-300">{item.value}</p>
                   </div>
                 </div>
               ))}
@@ -83,27 +83,27 @@ export default function ContactSection() {
           </div>
 
           <form className="premium-card rounded-3xl p-7 sm:p-8">
-            <h3 className="text-2xl font-semibold text-gray-900">Send a Message</h3>
-            <p className="mt-2 text-sm text-gray-600">We usually reply within 24 hours.</p>
+            <h3 className="text-2xl font-semibold text-gray-900 dark:text-slate-100">Send a Message</h3>
+            <p className="mt-2 text-sm text-gray-600 dark:text-slate-300">We usually reply within 24 hours.</p>
 
             <div className="mt-8 space-y-5">
               <input
                 type="text"
                 name="name"
                 placeholder="Your Name"
-                className="w-full rounded-2xl border border-gray-200 bg-white px-5 py-3.5 text-sm text-gray-900 shadow-sm outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                className="w-full rounded-2xl border border-gray-200 bg-white px-5 py-3.5 text-sm text-gray-900 shadow-sm outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               />
               <input
                 type="email"
                 name="email"
                 placeholder="Your Email"
-                className="w-full rounded-2xl border border-gray-200 bg-white px-5 py-3.5 text-sm text-gray-900 shadow-sm outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                className="w-full rounded-2xl border border-gray-200 bg-white px-5 py-3.5 text-sm text-gray-900 shadow-sm outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               />
               <textarea
                 name="message"
                 placeholder="Your Message"
                 rows={5}
-                className="w-full resize-none rounded-2xl border border-gray-200 bg-white px-5 py-3.5 text-sm text-gray-900 shadow-sm outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                className="w-full resize-none rounded-2xl border border-gray-200 bg-white px-5 py-3.5 text-sm text-gray-900 shadow-sm outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               />
               <button
                 type="submit"

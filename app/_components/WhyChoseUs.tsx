@@ -68,12 +68,12 @@ export default function WhyChooseUs() {
   }, []);
 
   return (
-    <section id="why-choose-us" ref={sectionRef} className="section-shell relative py-22">
+    <section id="why-choose-us" ref={sectionRef} className="section-shell relative py-22 dark:bg-slate-950/40">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-14 text-center">
           <p className="mb-4 text-xs font-semibold tracking-[0.2em] text-red-500 uppercase">Why FanUp</p>
-          <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">Built for Competitive Cricket Fans</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-base text-gray-600 sm:text-lg">
+          <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl dark:text-slate-100">Built for Competitive Cricket Fans</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-base text-gray-600 sm:text-lg dark:text-slate-300">
             From secure gameplay to rewarding contests, every detail is designed to feel fast, fair, and premium.
           </p>
         </div>
@@ -91,8 +91,8 @@ export default function WhyChooseUs() {
                 <div className={`mb-5 inline-flex rounded-2xl p-3 ${feature.tone}`}>
                   <Icon className="h-6 w-6" />
                 </div>
-                <h3 className="mb-3 text-xl font-semibold text-gray-900">{feature.title}</h3>
-                <p className="text-sm leading-relaxed text-gray-600">{feature.text}</p>
+                <h3 className="mb-3 text-xl font-semibold text-gray-900 dark:text-slate-100">{feature.title}</h3>
+                <p className="text-sm leading-relaxed text-gray-600 dark:text-slate-300">{feature.text}</p>
                 <div className="mt-6 h-[2px] w-14 rounded-full bg-gradient-to-r from-red-500/70 to-yellow-400/70 transition-all duration-300 group-hover:w-24" />
               </article>
             );

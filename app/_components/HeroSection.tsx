@@ -42,18 +42,18 @@ export default function HeroSection() {
 
         <div className="fade-up-delay mt-12 w-full max-w-md">
           <div className="premium-card rounded-3xl p-6">
-            <p className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">Live Snapshot</p>
+            <p className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase dark:text-slate-400">Live Snapshot</p>
             <div className="mt-5 space-y-4">
-              <div className="flex items-center justify-between rounded-2xl bg-red-50 px-4 py-3">
-                <span className="text-sm font-medium text-gray-700">Active Players</span>
+              <div className="flex items-center justify-between rounded-2xl bg-red-50 px-4 py-3 dark:bg-red-500/10">
+                <span className="text-sm font-medium text-gray-700 dark:text-slate-200">Active Players</span>
                 <span className="text-lg font-bold text-red-600">1.2M+</span>
               </div>
-              <div className="flex items-center justify-between rounded-2xl bg-amber-50 px-4 py-3">
-                <span className="text-sm font-medium text-gray-700">Daily Contests</span>
+              <div className="flex items-center justify-between rounded-2xl bg-amber-50 px-4 py-3 dark:bg-amber-500/10">
+                <span className="text-sm font-medium text-gray-700 dark:text-slate-200">Daily Contests</span>
                 <span className="text-lg font-bold text-amber-600">850+</span>
               </div>
-              <div className="flex items-center justify-between rounded-2xl bg-emerald-50 px-4 py-3">
-                <span className="text-sm font-medium text-gray-700">Prize Payouts</span>
+              <div className="flex items-center justify-between rounded-2xl bg-emerald-50 px-4 py-3 dark:bg-emerald-500/10">
+                <span className="text-sm font-medium text-gray-700 dark:text-slate-200">Prize Payouts</span>
                 <span className="text-lg font-bold text-emerald-600">Instant</span>
               </div>
             </div>

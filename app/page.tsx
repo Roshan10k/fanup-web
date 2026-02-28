@@ -6,6 +6,8 @@ import Navbar from "./_components/navbar";
 import WhyChooseUs from "./_components/WhyChoseUs";
 
 export default function HomePage() {
+  
+  
   return (
     <>
       <Navbar />
