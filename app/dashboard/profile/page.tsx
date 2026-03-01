@@ -19,6 +19,7 @@ import {
   handleUpdateProfile,
 } from "@/app/lib/action/auth_action";
 import { toast } from "react-toastify";
+import Image from "next/image";
 
 interface ProfileStats {
   contestsJoined: number;
@@ -202,9 +203,12 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-5">
                   <div className="relative">
                     {profilePictureUrl ? (
-                      <img
+                      <Image
                         src={profilePictureUrl}
                         alt={user.fullName || "Profile"}
+                        width={96}
+                        height={96}
+                        unoptimized
                         className={`w-24 h-24 rounded-full object-cover border-4 shadow-sm ${isDark ? "border-slate-700" : "border-white"}`}
                       />
                     ) : (

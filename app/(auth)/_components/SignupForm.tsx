@@ -22,7 +22,7 @@ const loadGoogleIdentityScript = () =>
       GOOGLE_SCRIPT_ID,
     ) as HTMLScriptElement | null;
 
-    if ((window as any).google?.accounts?.id) {
+    if ((window as unknown as { google?: { accounts?: { id?: unknown } } }).google?.accounts?.id) {
       resolve();
       return;
     }
@@ -96,8 +96,9 @@ export default function SignupForm() {
             result.message || "Registration failed. Please try again.",
           );
         }
-      } catch (error: any) {
-        setErrorMessage(error.message || "An unexpected error occurred");
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        setErrorMessage(message);
         console.error("Signup error:", error);
       }
     });
@@ -133,7 +134,7 @@ export default function SignupForm() {
       setIsGoogleSubmitting(true);
       await loadGoogleIdentityScript();
 
-      const google = (window as any).google;
+      const google = (window as unknown as { google?: { accounts?: { id?: { initialize: (config: Record<string, unknown>) => void; prompt: () => void } } } }).google;
       if (!google?.accounts?.id) {
         throw new Error("Google sign-in is unavailable");
       }
@@ -154,14 +155,15 @@ export default function SignupForm() {
             }
 
             await checkAuth();
-            if (result.data?.role === "admin") {
+            if ((result.data as Record<string, unknown>)?.role === "admin") {
               router.replace("/admin");
             } else {
               router.replace("/dashboard");
             }
             router.refresh();
-          } catch (error: any) {
-            setErrorMessage(error.message || "Google login failed.");
+          } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Google login failed.";
+            setErrorMessage(message);
           } finally {
             setIsGoogleSubmitting(false);
           }
@@ -172,8 +174,9 @@ export default function SignupForm() {
       setTimeout(() => {
         setIsGoogleSubmitting(false);
       }, 15000);
-    } catch (error: any) {
-      setErrorMessage(error.message || "Google login failed.");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Google login failed.";
+      setErrorMessage(message);
       setIsGoogleSubmitting(false);
     }
   };
@@ -361,7 +364,7 @@ export default function SignupForm() {
       </button>
 
       <p className="text-xs text-center text-gray-500 dark:text-slate-400">
-        You'll receive a verification email after signing up
+        You&apos;ll receive a verification email after signing up
       </p>
 
       {/* Social Divider */}

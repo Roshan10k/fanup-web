@@ -4,11 +4,22 @@ import { clearAuthCookies } from "@/app/lib/cookie";
 import { useRouter } from "next/navigation";
 import { handleHydrateSession } from "@/app/lib/action/auth_action";
 
+export interface AppUser {
+    _id?: string;
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    role?: string;
+    balance?: number;
+    profilePicture?: string;
+    [key: string]: unknown;
+}
+
 interface AuthContextProps {
     isAuthenticated: boolean;
     setIsAuthenticated: (value: boolean) => void;
-    user: any;
-    setUser: (user: any) => void;
+    user: AppUser | null;
+    setUser: (user: AppUser | null) => void;
     logout: () => Promise<void>;
     loading: boolean;
     checkAuth: () => Promise<void>;
@@ -18,21 +29,21 @@ const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [user, setUser] = useState<any>(null);
+    const [user, setUser] = useState<AppUser | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
     const checkAuth = async () => {
         try {
             const result = await handleHydrateSession();
             if (result.success && result.data) {
-                setUser(result.data);
+                setUser(result.data as AppUser);
                 setIsAuthenticated(true);
                 return;
             }
 
             setIsAuthenticated(false);
             setUser(null);
-        } catch (err) {
+        } catch {
             setIsAuthenticated(false);
             setUser(null);
         } finally {

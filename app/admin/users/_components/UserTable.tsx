@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import { handleDeleteUser } from "@/app/lib/action/admin/user-action";
 import { Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import DeleteModal from "../../../_components/DeleteModal"; 
+import Image from "next/image";
 
 interface User {
   _id: string;
@@ -177,7 +178,7 @@ export default function UserTable({
       } else {
         toast.error(result.message || "Failed to delete user");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete user");
     } finally {
       setDeletingId(null);
@@ -297,9 +298,12 @@ export default function UserTable({
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {getProfilePictureUrl(user.profilePicture) ? (
-                          <img
+                          <Image
                             src={getProfilePictureUrl(user.profilePicture)!}
                             alt={user.fullName}
+                            width={40}
+                            height={40}
+                            unoptimized
                             className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
                           />
                         ) : (

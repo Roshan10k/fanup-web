@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { handleGetUserById } from "@/app/lib/action/admin/user-action";
 import { Eye, Mail, Pencil, Shield, User as UserIcon } from "lucide-react";
 import { ReactNode } from "react";
+import Image from "next/image";
 
 type UserDetails = {
     _id: string;
@@ -56,9 +57,12 @@ export default async function Page({
                 <section className="lg:col-span-1 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                     <div className="flex flex-col items-center text-center">
                         {profilePictureUrl ? (
-                            <img
+                            <Image
                                 src={profilePictureUrl}
                                 alt={user.fullName}
+                                width={112}
+                                height={112}
+                                unoptimized
                                 className="w-28 h-28 rounded-full object-cover border-4 border-red-100"
                             />
                         ) : (

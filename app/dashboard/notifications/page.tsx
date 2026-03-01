@@ -36,8 +36,18 @@ export default function NotificationsPage() {
   }, []);
 
   useEffect(() => {
-    loadNotifications();
-  }, [loadNotifications]);
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const result = await getNotificationsAction(1, 20);
+      if (!cancelled && result.success && result.data) {
+        setNotifications(result.data.rows);
+        setPagination(result.data.pagination);
+      }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleMarkAsRead = async (id: string) => {
     setActionLoading(id);

@@ -37,8 +37,9 @@ export default function ForgotPasswordPage() {
       } else {
         setErrorMessage(result.message || "Something went wrong.");
       }
-    } catch (err: any) {
-      setErrorMessage(err.message || "Unexpected error occurred.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unexpected error occurred.";
+      setErrorMessage(message);
     }
   };
 

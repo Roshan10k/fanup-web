@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Bell, Home, Wallet, User, Settings, LogOut, BarChart3 } from "lucide-react";
+import { Bell, Home, Wallet, User,LogOut, BarChart3 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useThemeMode } from "./useThemeMode";
@@ -42,7 +42,7 @@ export default function Sidebar() {
 
   const META_LINKS = [
     { icon: Bell, label: "Notification", href: "/dashboard/notifications", badge: unreadCount > 0, badgeCount: unreadCount },
-    { icon: Settings, label: "Settings", href: "/settings" },
+    
   ];
 
   const initials = useMemo(() => {

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { z } from "zod";
 import { handleUpdateUser } from "@/app/lib/action/admin/user-action";
+import Image from "next/image";
 
 const editUserSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
@@ -95,9 +96,12 @@ export default function EditUserForm({ user, userId }: EditUserFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="rounded-xl border border-gray-200 p-4 bg-gray-50 flex items-center gap-4">
         {imagePreview ? (
-          <img
+          <Image
             src={imagePreview}
             alt={user.fullName}
+            width={80}
+            height={80}
+            unoptimized
             className="w-20 h-20 rounded-full object-cover border-2 border-red-200"
           />
         ) : (

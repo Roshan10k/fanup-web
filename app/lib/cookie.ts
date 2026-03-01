@@ -10,7 +10,7 @@ export const getAuthToken = async () => {
     const cookieStore = await cookies();
     return cookieStore.get('auth_token')?.value;
 }
-export const setUserData = async (userData: any) => {
+export const setUserData = async (userData: unknown) => {
     const cookieStore = await cookies();
     // cookie can only store string values
     // so we need to stringify the user data

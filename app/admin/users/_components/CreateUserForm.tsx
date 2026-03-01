@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { handleCreateUser } from "@/app/lib/action/admin/user-action";
 import { z } from "zod";
+import Image from "next/image";
 
 // Validation schema
 const createUserSchema = z
@@ -72,7 +73,7 @@ export default function CreateUserForm() {
     try {
       const formData = new FormData();
       Object.entries(data).forEach(([key, value]) => {
-        if (value) formData.append(key, value as any);
+        if (value) formData.append(key, value as string);
       });
 
       const result = await handleCreateUser(formData);
@@ -102,9 +103,12 @@ export default function CreateUserForm() {
           <div className="relative">
             {imagePreview ? (
               <div className="relative group">
-                <img
+                <Image
                   src={imagePreview}
                   alt="Preview"
+                  width={128}
+                  height={128}
+                  unoptimized
                   className="w-32 h-32 rounded-full object-cover border-4 shadow-lg"
                   style={{ borderColor: "#FE304C" }}
                 />
