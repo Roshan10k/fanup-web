@@ -2,11 +2,15 @@
 "use server";
 
 import { 
+  getProfileStats,
   googleLogin,
+  hydrateSession,
   login, 
   register, 
   requestPasswordReset,  
-  resetPassword 
+  resetPassword,
+  updateProfile,
+  updateProfileWithPhoto,
 } from "../api/auth";
 import {
   clearAuthCookies,
@@ -15,16 +19,10 @@ import {
   setAuthToken,
   setUserData,
 } from "../cookie";
-import { API } from "../api/endpoints";
 
 const getErrorMessage = (error: unknown, fallback: string) => {
   return error instanceof Error ? error.message : fallback;
 };
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  "http://localhost:3001";
 
 export async function handleRegister(formData: unknown) {
   try {
@@ -46,12 +44,12 @@ export async function handleLogin(formData: unknown) {
   try {
     const result = await login(formData);
     if (result.success) {
-      await setAuthToken(result.token);
+      await setAuthToken(result.token as string);
       await setUserData(result.data);
       return {
         success: true,
         message: "Login Successful",
-        data: result.data,
+        data: result.data as Record<string, unknown>,
       };
     }
     return { success: false, message: result.message || "login failed" };
@@ -64,12 +62,12 @@ export async function handleGoogleLogin(credential: string) {
   try {
     const result = await googleLogin(credential);
     if (result.success) {
-      await setAuthToken(result.token);
+      await setAuthToken(result.token as string);
       await setUserData(result.data);
       return {
         success: true,
         message: "Login Successful",
-        data: result.data,
+        data: result.data as Record<string, unknown>,
       };
     }
     return { success: false, message: result.message || "Google login failed" };
@@ -138,8 +136,6 @@ export const handleUpdateProfile = async (formData: FormData) => {
 
     const photo = formData.get("photo");
     const hasPhoto = photo instanceof File && photo.size > 0;
-    let response: Response;
-
     if (hasPhoto) {
       const user = await getUserData();
       const userId = user?._id;
@@ -151,51 +147,37 @@ export const handleUpdateProfile = async (formData: FormData) => {
         };
       }
 
-      response = await fetch(`${API_BASE_URL}/api/auth/${userId}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-        cache: "no-store",
-      });
+      const payload = await updateProfileWithPhoto(token, userId, formData);
+      const updatedUser = payload?.data || payload?.user || null;
+
+      if (updatedUser) {
+        await setUserData(updatedUser);
+      }
+
+      return {
+        success: true,
+        message: payload?.message || "Profile updated successfully",
+        data: updatedUser,
+      };
     } else {
-      const payload = {
+      const requestPayload = {
         fullName: String(formData.get("fullName") || "").trim(),
         phone: String(formData.get("phone") || "").trim(),
       };
 
-      response = await fetch(`${API_BASE_URL}/api/users/profile`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-        cache: "no-store",
-      });
-    }
+      const payload = await updateProfile(token, requestPayload);
+      const updatedUser = payload?.data || payload?.user || null;
 
-    const payload = await response.json().catch(() => ({}));
+      if (updatedUser) {
+        await setUserData(updatedUser);
+      }
 
-    if (!response.ok) {
       return {
-        success: false,
-        message: payload?.message || "Failed to update profile",
+        success: true,
+        message: payload?.message || "Profile updated successfully",
+        data: updatedUser,
       };
     }
-
-    const updatedUser = payload?.data || payload?.user || null;
-
-    if (updatedUser) {
-      await setUserData(updatedUser);
-    }
-
-    return {
-      success: true,
-      message: payload?.message || "Profile updated successfully",
-      data: updatedUser,
-    };
   } catch (error: unknown) {
     return {
       success: false,
@@ -215,16 +197,8 @@ export const handleHydrateSession = async () => {
       };
     }
 
-    const response = await fetch(`${API_BASE_URL}${API.AUTH.WHOAMI}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    });
-
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || !payload?.success || !payload?.data) {
+    const payload = await hydrateSession(token);
+    if (!payload?.success || !payload?.data) {
       await clearAuthCookies();
       return {
         success: false,
@@ -260,16 +234,8 @@ export const handleGetProfileStats = async () => {
       };
     }
 
-    const response = await fetch(`${API_BASE_URL}${API.AUTH.PROFILE_STATS}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    });
-
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || !payload?.success) {
+    const payload = await getProfileStats(token);
+    if (!payload?.success) {
       return {
         success: false,
         message: payload?.message || "Failed to fetch profile stats",

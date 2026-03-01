@@ -1,29 +1,16 @@
 "use server";
 
-import { API } from "../api/endpoints";
+import {
+  deleteNotification,
+  getNotifications,
+  getUnreadCount,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+} from "../api/notification";
 import { getAuthToken } from "../cookie";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  "http://localhost:3001";
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
-
-const parseJsonSafe = (raw: string): Record<string, unknown> => {
-  if (!raw) return {};
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return {};
-  }
-};
-
-const makeAuthHeaders = (token: string) => ({
-  Authorization: `Bearer ${token}`,
-  "Content-Type": "application/json",
-});
 
 export interface Notification {
   id: string;
@@ -47,9 +34,6 @@ export interface NotificationListResponse {
   };
 }
 
-/**
- * Get notifications for the current user
- */
 export const getNotificationsAction = async (page = 1, size = 20) => {
   try {
     const token = await getAuthToken();
@@ -57,31 +41,7 @@ export const getNotificationsAction = async (page = 1, size = 20) => {
       return { success: false, message: "Unauthorized. Please login again." };
     }
 
-    const query = new URLSearchParams({
-      page: String(page),
-      size: String(size),
-    });
-
-    const response = await fetch(
-      `${API_BASE_URL}${API.NOTIFICATIONS.LIST}?${query.toString()}`,
-      {
-        method: "GET",
-        headers: makeAuthHeaders(token),
-        cache: "no-store",
-      }
-    );
-
-    const raw = await response.text();
-    const payload = parseJsonSafe(raw);
-    if (!response.ok || !payload?.success) {
-      return {
-        success: false,
-        message:
-          payload?.message ||
-          `Failed to fetch notifications (HTTP ${response.status})`,
-      };
-    }
-
+    const payload = await getNotifications(token, page, size);
     return {
       success: true,
       data: payload.data as NotificationListResponse,
@@ -95,9 +55,6 @@ export const getNotificationsAction = async (page = 1, size = 20) => {
   }
 };
 
-/**
- * Get unread notification count
- */
 export const getUnreadCountAction = async () => {
   try {
     const token = await getAuthToken();
@@ -105,26 +62,7 @@ export const getUnreadCountAction = async () => {
       return { success: false, message: "Unauthorized. Please login again." };
     }
 
-    const response = await fetch(
-      `${API_BASE_URL}${API.NOTIFICATIONS.UNREAD_COUNT}`,
-      {
-        method: "GET",
-        headers: makeAuthHeaders(token),
-        cache: "no-store",
-      }
-    );
-
-    const raw = await response.text();
-    const payload = parseJsonSafe(raw);
-    if (!response.ok || !payload?.success) {
-      return {
-        success: false,
-        message:
-          payload?.message ||
-          `Failed to fetch unread count (HTTP ${response.status})`,
-      };
-    }
-
+    const payload = await getUnreadCount(token);
     return {
       success: true,
       data: payload.data as { count: number },
@@ -138,9 +76,6 @@ export const getUnreadCountAction = async () => {
   }
 };
 
-/**
- * Mark a notification as read
- */
 export const markAsReadAction = async (notificationId: string) => {
   try {
     const token = await getAuthToken();
@@ -148,26 +83,7 @@ export const markAsReadAction = async (notificationId: string) => {
       return { success: false, message: "Unauthorized. Please login again." };
     }
 
-    const response = await fetch(
-      `${API_BASE_URL}${API.NOTIFICATIONS.MARK_READ(notificationId)}`,
-      {
-        method: "PATCH",
-        headers: makeAuthHeaders(token),
-        cache: "no-store",
-      }
-    );
-
-    const raw = await response.text();
-    const payload = parseJsonSafe(raw);
-    if (!response.ok || !payload?.success) {
-      return {
-        success: false,
-        message:
-          payload?.message ||
-          `Failed to mark notification as read (HTTP ${response.status})`,
-      };
-    }
-
+    const payload = await markNotificationAsRead(token, notificationId);
     return {
       success: true,
       data: payload.data,
@@ -181,9 +97,6 @@ export const markAsReadAction = async (notificationId: string) => {
   }
 };
 
-/**
- * Mark all notifications as read
- */
 export const markAllAsReadAction = async () => {
   try {
     const token = await getAuthToken();
@@ -191,26 +104,7 @@ export const markAllAsReadAction = async () => {
       return { success: false, message: "Unauthorized. Please login again." };
     }
 
-    const response = await fetch(
-      `${API_BASE_URL}${API.NOTIFICATIONS.MARK_ALL_READ}`,
-      {
-        method: "PATCH",
-        headers: makeAuthHeaders(token),
-        cache: "no-store",
-      }
-    );
-
-    const raw = await response.text();
-    const payload = parseJsonSafe(raw);
-    if (!response.ok || !payload?.success) {
-      return {
-        success: false,
-        message:
-          payload?.message ||
-          `Failed to mark all notifications as read (HTTP ${response.status})`,
-      };
-    }
-
+    const payload = await markAllNotificationsAsRead(token);
     return {
       success: true,
       data: payload.data as { markedCount: number },
@@ -224,9 +118,6 @@ export const markAllAsReadAction = async () => {
   }
 };
 
-/**
- * Delete a notification
- */
 export const deleteNotificationAction = async (notificationId: string) => {
   try {
     const token = await getAuthToken();
@@ -234,26 +125,7 @@ export const deleteNotificationAction = async (notificationId: string) => {
       return { success: false, message: "Unauthorized. Please login again." };
     }
 
-    const response = await fetch(
-      `${API_BASE_URL}${API.NOTIFICATIONS.DELETE(notificationId)}`,
-      {
-        method: "DELETE",
-        headers: makeAuthHeaders(token),
-        cache: "no-store",
-      }
-    );
-
-    const raw = await response.text();
-    const payload = parseJsonSafe(raw);
-    if (!response.ok || !payload?.success) {
-      return {
-        success: false,
-        message:
-          payload?.message ||
-          `Failed to delete notification (HTTP ${response.status})`,
-      };
-    }
-
+    const payload = await deleteNotification(token, notificationId);
     return {
       success: true,
       data: payload.data,

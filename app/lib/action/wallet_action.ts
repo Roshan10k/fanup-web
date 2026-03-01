@@ -1,29 +1,15 @@
 "use server";
 
-import { API } from "../api/endpoints";
+import {
+  applyContestJoinDebit,
+  claimDailyBonus,
+  getWalletSummary,
+  getWalletTransactions,
+} from "../api/wallet";
 import { getAuthToken, getUserData, setUserData } from "../cookie";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  "http://localhost:3001";
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
-
-const parseJsonSafe = (raw: string): Record<string, unknown> => {
-  if (!raw) return {};
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return {};
-  }
-};
-
-const makeAuthHeaders = (token: string) => ({
-  Authorization: `Bearer ${token}`,
-  "Content-Type": "application/json",
-});
 
 export const getWalletSummaryAction = async () => {
   try {
@@ -32,23 +18,7 @@ export const getWalletSummaryAction = async () => {
       return { success: false, message: "Unauthorized. Please login again." };
     }
 
-    const response = await fetch(`${API_BASE_URL}${API.WALLET.SUMMARY}`, {
-      method: "GET",
-      headers: makeAuthHeaders(token),
-      cache: "no-store",
-    });
-
-    const raw = await response.text();
-    const payload = parseJsonSafe(raw);
-    if (!response.ok || !payload?.success) {
-      return {
-        success: false,
-        message:
-          payload?.message ||
-          `Failed to fetch wallet summary (HTTP ${response.status})`,
-      };
-    }
-
+    const payload = await getWalletSummary(token);
     return {
       success: true,
       data: payload.data,
@@ -69,31 +39,7 @@ export const getWalletTransactionsAction = async (page = 1, size = 20) => {
       return { success: false, message: "Unauthorized. Please login again." };
     }
 
-    const query = new URLSearchParams({
-      page: String(page),
-      size: String(size),
-    });
-
-    const response = await fetch(
-      `${API_BASE_URL}${API.WALLET.TRANSACTIONS}?${query.toString()}`,
-      {
-        method: "GET",
-        headers: makeAuthHeaders(token),
-        cache: "no-store",
-      }
-    );
-
-    const raw = await response.text();
-    const payload = parseJsonSafe(raw);
-    if (!response.ok || !payload?.success) {
-      return {
-        success: false,
-        message:
-          payload?.message ||
-          `Failed to fetch wallet transactions (HTTP ${response.status})`,
-      };
-    }
-
+    const payload = await getWalletTransactions(token, page, size);
     return {
       success: true,
       data: payload.data || [],
@@ -115,24 +61,7 @@ export const claimDailyBonusAction = async () => {
       return { success: false, message: "Unauthorized. Please login again." };
     }
 
-    const response = await fetch(`${API_BASE_URL}${API.WALLET.DAILY_BONUS}`, {
-      method: "POST",
-      headers: makeAuthHeaders(token),
-      cache: "no-store",
-      body: JSON.stringify({}),
-    });
-
-    const raw = await response.text();
-    const payload = parseJsonSafe(raw);
-    if (!response.ok || !payload?.success) {
-      return {
-        success: false,
-        message:
-          payload?.message ||
-          `Failed to claim daily bonus (HTTP ${response.status})`,
-      };
-    }
-
+    const payload = await claimDailyBonus(token);
     const summary = payload?.data?.summary;
     if (summary) {
       const user = await getUserData();
@@ -167,24 +96,7 @@ export const applyContestJoinDebitAction = async (input: {
       return { success: false, message: "Unauthorized. Please login again." };
     }
 
-    const response = await fetch(`${API_BASE_URL}${API.WALLET.CONTEST_JOIN}`, {
-      method: "POST",
-      headers: makeAuthHeaders(token),
-      cache: "no-store",
-      body: JSON.stringify(input),
-    });
-
-    const raw = await response.text();
-    const payload = parseJsonSafe(raw);
-    if (!response.ok || !payload?.success) {
-      return {
-        success: false,
-        message:
-          payload?.message ||
-          `Failed to apply contest join debit (HTTP ${response.status})`,
-      };
-    }
-
+    const payload = await applyContestJoinDebit(token, input);
     const summary = payload?.data?.summary;
     if (summary) {
       const user = await getUserData();
