@@ -1,61 +1,138 @@
-//AUTHENTICATION API CALL
+// AUTHENTICATION API CALLS
 import axios from "./axios";
+import { isAxiosError } from "axios";
 import { API } from "./endpoints";
 
-export const register = async (registrationData: any) => {
+type ApiPayload = {
+  success?: boolean;
+  message?: string;
+  data?: unknown;
+  token?: string;
+  user?: unknown;
+  [key: string]: unknown;
+};
+
+const getAxiosErrorMessage = (error: unknown, fallback: string) => {
+  if (isAxiosError(error)) {
+    const message = (error.response?.data as { message?: string } | undefined)
+      ?.message;
+    return message || error.message || fallback;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
+export const register = async (registrationData: unknown): Promise<ApiPayload> => {
   try {
     const response = await axios.post(API.AUTH.REGISTER, registrationData);
-    return response.data; 
-  } catch (err: Error | any) {
-    //4xx- 5xx falls in catch
-    throw new Error(
-      err.response?.data?.message || //message from backend
-        err.message || //general exception message
-        "Registration Failed", //fallback message
-    );
+    return response.data;
+  } catch (error: unknown) {
+    throw new Error(getAxiosErrorMessage(error, "Registration failed"));
   }
 };
 
-export const login = async (loginData: any) => {
+export const login = async (loginData: unknown): Promise<ApiPayload> => {
   try {
     const response = await axios.post(API.AUTH.LOGIN, loginData);
     return response.data;
-  } catch (err: Error | any) {
-    throw new Error(
-      err.response?.data?.message || //message from backend
-        err.message || //general exception message
-        "Login Failed", //fallback message
-    );
+  } catch (error: unknown) {
+    throw new Error(getAxiosErrorMessage(error, "Login failed"));
   }
 };
 
-export const googleLogin = async (credential: string) => {
+export const googleLogin = async (credential: string): Promise<ApiPayload> => {
   try {
     const response = await axios.post(API.AUTH.GOOGLE_LOGIN, { credential });
     return response.data;
-  } catch (err: Error | any) {
+  } catch (error: unknown) {
+    throw new Error(getAxiosErrorMessage(error, "Google login failed"));
+  }
+};
+
+export const requestPasswordReset = async (email: string): Promise<ApiPayload> => {
+  try {
+    const response = await axios.post(API.AUTH.REQUEST_PASSWORD_RESET, { email });
+    return response.data;
+  } catch (error: unknown) {
+    throw new Error(getAxiosErrorMessage(error, "Request password reset failed"));
+  }
+};
+
+export const resetPassword = async (
+  token: string,
+  newPassword: string
+): Promise<ApiPayload> => {
+  try {
+    const response = await axios.post(API.AUTH.RESET_PASSWORD(token), {
+      newPassword,
+    });
+    return response.data;
+  } catch (error: unknown) {
+    throw new Error(getAxiosErrorMessage(error, "Reset password failed"));
+  }
+};
+
+export const updateProfileWithPhoto = async (
+  token: string,
+  userId: string,
+  formData: FormData
+): Promise<ApiPayload> => {
+  try {
+    const response = await axios.put(API.AUTH.UPDATEPROFILE_PHOTO(userId), formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: unknown) {
+    throw new Error(getAxiosErrorMessage(error, "Failed to update profile"));
+  }
+};
+
+export const updateProfile = async (
+  token: string,
+  payload: { fullName: string; phone: string }
+): Promise<ApiPayload> => {
+  try {
+    const response = await axios.put(API.AUTH.UPDATEPROFILE, payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: unknown) {
+    throw new Error(getAxiosErrorMessage(error, "Failed to update profile"));
+  }
+};
+
+export const hydrateSession = async (token: string): Promise<ApiPayload> => {
+  try {
+    const response = await axios.get(API.AUTH.WHOAMI, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: unknown) {
     throw new Error(
-      err.response?.data?.message ||
-        err.message ||
-        "Google login failed",
+      getAxiosErrorMessage(error, "Session expired. Please login again.")
     );
   }
 };
 
-export const requestPasswordReset = async (email: string) => {
-    try {
-        const response = await axios.post(API.AUTH.REQUEST_PASSWORD_RESET, { email });
-        return response.data;
-    } catch (error: Error | any) {
-        throw new Error(error.response?.data?.message || error.message || 'Request password reset failed');
-    }
-};
-
-export const resetPassword = async (token: string, newPassword: string) => {
-    try {
-        const response = await axios.post(API.AUTH.RESET_PASSWORD(token), { newPassword: newPassword });
-        return response.data;
-    } catch (error: Error | any) {
-        throw new Error(error.response?.data?.message || error.message || 'Reset password failed');
-    }
+export const getProfileStats = async (token: string): Promise<ApiPayload> => {
+  try {
+    const response = await axios.get(API.AUTH.PROFILE_STATS, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: unknown) {
+    throw new Error(getAxiosErrorMessage(error, "Failed to fetch profile stats"));
+  }
 };
