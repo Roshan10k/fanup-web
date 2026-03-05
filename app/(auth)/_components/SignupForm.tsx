@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signupSchema, SignupType } from "../schema";
@@ -54,6 +54,7 @@ export default function SignupForm() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const googleBtnRef = useRef<HTMLDivElement>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const { checkAuth } = useAuth();
@@ -134,7 +135,7 @@ export default function SignupForm() {
       setIsGoogleSubmitting(true);
       await loadGoogleIdentityScript();
 
-      const google = (window as unknown as { google?: { accounts?: { id?: { initialize: (config: Record<string, unknown>) => void; prompt: () => void } } } }).google;
+      const google = (window as unknown as { google?: { accounts?: { id?: { initialize: (config: Record<string, unknown>) => void; prompt: () => void; renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void } } } }).google;
       if (!google?.accounts?.id) {
         throw new Error("Google sign-in is unavailable");
       }
@@ -170,10 +171,32 @@ export default function SignupForm() {
         },
       });
 
-      google.accounts.id.prompt();
+      // Render a hidden Google button and click it to trigger popup flow
+      // This avoids FedCM/One Tap issues on localhost
+      if (googleBtnRef.current) {
+        googleBtnRef.current.innerHTML = "";
+        google.accounts.id.renderButton(googleBtnRef.current, {
+          type: "icon",
+          size: "large",
+        });
+        const innerBtn = googleBtnRef.current.querySelector<HTMLElement>("div[role=button]");
+        if (innerBtn) {
+          innerBtn.click();
+        } else {
+          setTimeout(() => {
+            const btn = googleBtnRef.current?.querySelector<HTMLElement>("div[role=button], iframe");
+            btn?.click();
+            if (!btn) {
+              setIsGoogleSubmitting(false);
+              setErrorMessage("Could not open Google sign-in. Please try again.");
+            }
+          }, 500);
+        }
+      }
+
       setTimeout(() => {
         setIsGoogleSubmitting(false);
-      }, 15000);
+      }, 30000);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Google login failed.";
       setErrorMessage(message);
@@ -410,6 +433,8 @@ export default function SignupForm() {
             {isGoogleSubmitting ? "Connecting to Google..." : "Continue with Google"}
           </span>
         </button>
+        {/* Hidden container for Google's rendered button (used for popup flow) */}
+        <div ref={googleBtnRef} className="hidden" />
       </div>
     </div>
   );

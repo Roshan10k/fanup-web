@@ -85,6 +85,7 @@ export const updateProfileWithPhoto = async (
     const response = await axios.put(API.AUTH.UPDATEPROFILE_PHOTO(userId), formData, {
       headers: {
         Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
       },
     });
     return response.data;
